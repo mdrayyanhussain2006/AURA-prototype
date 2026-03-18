@@ -1,0 +1,23 @@
+module.exports = Object.freeze({
+  AI_RUN_ARCHIVE_ASSISTANT: 'aura:ai:runArchiveAssistant',
+  AUTH_GET_SESSION: 'aura:auth:getSession',
+  AUTH_LOGIN: 'aura:auth:login',
+  AUTH_LOGOUT: 'aura:auth:logout',
+  VAULT_LIST_ITEMS: 'aura:vault:listItems',
+  VAULT_GET_ITEM: 'aura:vault:getItem',
+  VAULT_SAVE_ITEM: 'aura:vault:saveItem',
+  CONSENT_GET_ALL: 'aura:consent:getAll',
+  CONSENT_UPDATE: 'aura:consent:update',
+  DEMO_PING: 'aura:demo:ping',
+  DEMO_GET_INFO: 'aura:demo:getInfo',
+  ENV_GET_APP_NAME: 'aura:env:getAppName',
+  ENV_GET_PLATFORM: 'aura:env:getPlatform',
+  INSIGHTS_GET_SUMMARY: 'aura:insights:getSummary',
+  INSIGHTS_GET_ACTIVITY: 'aura:insights:getActivity',
+  MARKETPLACE_LIST_ITEMS: 'aura:marketplace:listItems',
+  MARKETPLACE_GET_ITEM_DETAILS: 'aura:marketplace:getItemDetails',
+  SECURITY_GET_STATUS: 'aura:security:getStatus',
+  SECURITY_GET_POLICIES: 'aura:security:getPolicies',
+  STORAGE_SAVE_SECURE_ITEM: 'aura:storage:saveSecureItem',
+  STORAGE_GET_SECURE_ITEM: 'aura:storage:getSecureItem'
+});

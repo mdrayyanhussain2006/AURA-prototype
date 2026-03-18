@@ -1,0 +1,59 @@
+{
+  "pipeline": {
+    "name": "AURA_Redaction_Pipeline",
+    "description": "Local PII redaction pipeline for AURA Desktop Vault",
+    "stages": [
+      {
+        "name": "detect_sensitive",
+        "description": "Identifies PII (Emails, Keys, Phone numbers) using local regex patterns.",
+        "engine": "local_regex",
+        "patterns": {
+          "EMAIL": "\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b",
+          "PHONE": "\\b(?:\\+?\\d{1,3}[- ]?)?\\(?\\d{3}\\)?[- ]?\\d{3}[- ]?\\d{4}\\b",
+          "KEY": "(?i)(?:api[_-]?key|key|secret|token|password)[\"']?\\s*[:=]\\s*[\"']?([a-zA-Z0-9\\-_]{16,})[\"']?"
+        }
+      },
+      {
+        "name": "redact_sensitive",
+        "description": "Replaces matches with [REDACTED_TYPE].",
+        "action": "replace",
+        "replacement_template": "[REDACTED_{TYPE}]"
+      },
+      {
+        "name": "summarize_redaction",
+        "description": "Lists types of info removed.",
+        "action": "aggregate_match_types"
+      },
+      {
+        "name": "export_safe_payload",
+        "description": "Returns the final JSON object.",
+        "action": "format_output",
+        "output_schema": {
+          "type": "object",
+          "properties": {
+            "redacted": {
+              "type": "string",
+              "description": "The sanitized text content"
+            },
+            "redaction_summary": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of redacted entity types"
+            },
+            "safe": {
+              "type": "boolean",
+              "description": "True if processing completed successfully"
+            }
+          },
+          "required": [
+            "redacted",
+            "redaction_summary",
+            "safe"
+          ]
+        }
+      }
+    ]
+  }
+}

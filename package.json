@@ -1,0 +1,42 @@
+{
+  "name": "aura-desktop-vault",
+  "version": "0.1.0",
+  "productName": "AURA Desktop Vault",
+  "description": "A production-grade Electron + React desktop application starter for AURA (Autonomous User-Regulated Archives).",
+  "main": "src/main/main.js",
+  "author": "",
+  "license": "MIT",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:main\" \"npm:dev:renderer\"",
+    "dev:main": "cross-env NODE_ENV=development electronmon src/main/main.js",
+    "dev:renderer": "cross-env NODE_ENV=development vite --config vite.renderer.config.mts",
+    "build": "npm run build:renderer && npm run build:main",
+    "build:renderer": "vite build --config vite.renderer.config.mts",
+    "build:main": "cross-env NODE_ENV=production node scripts/build-main.cjs",
+    "lint": "eslint \"src/**/*.{js,jsx}\"",
+    "start": "cross-env NODE_ENV=production electron ."
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "electron-is-dev": "^3.0.1",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^0.577.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^7.0.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react-swc": "^3.7.0",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.0.0",
+    "cross-env": "^7.0.3",
+    "electron": "^31.0.0",
+    "electronmon": "^2.0.2",
+    "eslint": "^9.12.0",
+    "eslint-plugin-react-hooks": "^5.0.0",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.13",
+    "typescript": "^5.9.3",
+    "vite": "^6.0.0"
+  }
+}
