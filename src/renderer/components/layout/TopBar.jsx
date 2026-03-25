@@ -1,7 +1,14 @@
 import React from 'react';
 
 function TopBar() {
-  const [platform, setPlatform] = React.useState('unknown');
+  const [platform, setPlatform] = React.useState(() => {
+    // Immediate local fallback — no IPC needed
+    const raw = navigator?.platform || '';
+    if (raw.startsWith('Win')) return 'Windows';
+    if (raw.startsWith('Mac')) return 'macOS';
+    if (raw.includes('Linux')) return 'Linux';
+    return 'Desktop';
+  });
 
   React.useEffect(() => {
     let mounted = true;
@@ -10,7 +17,7 @@ function TopBar() {
         const p = await window.aura?.env?.getPlatform?.();
         if (mounted && p) setPlatform(p);
       } catch {
-        // ignore
+        // keep local fallback — already set
       }
     })();
     return () => {

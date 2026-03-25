@@ -1,9 +1,15 @@
 const { ipcMain } = require('electron');
 const Channels = require('../../shared/ipcChannels.cjs');
+const { readVaultItems } = require('../services/storage');
 
 function registerInsightsIpc() {
   ipcMain.handle(Channels.INSIGHTS_GET_SUMMARY, async () => {
-    return { ok: true, summary: { indexedCount: 0, integrityScore: 100 } };
+    try {
+      const items = readVaultItems();
+      return { ok: true, summary: { indexedCount: items.length, integrityScore: 100 } };
+    } catch {
+      return { ok: true, summary: { indexedCount: 0, integrityScore: 100 } };
+    }
   });
 
   ipcMain.handle(Channels.INSIGHTS_GET_ACTIVITY, async (_event, { limit }) => {

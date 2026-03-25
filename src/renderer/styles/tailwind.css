@@ -20,10 +20,8 @@
 
   body {
     margin: 0;
-    background:
-      radial-gradient(circle at 12% 12%, rgba(251, 228, 216, 0.95), rgba(223, 182, 178, 0.5) 28%, rgba(251, 228, 216, 0.75) 60%, rgba(82, 43, 91, 0.18) 100%),
-      linear-gradient(145deg, #fbe4d8 0%, #dfb6b2 45%, #fbe4d8 100%);
-    color: #1f2937;
+    background: linear-gradient(145deg, #020617 0%, #0f172a 100%);
+    color: #f1f5f9;
     font-family: 'Inter', system-ui, sans-serif;
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;

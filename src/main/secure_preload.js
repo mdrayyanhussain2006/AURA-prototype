@@ -26,7 +26,10 @@ const FALLBACK_CHANNELS = Object.freeze({
   VAULT_SAVE_ITEM: 'aura:vault:saveItem',
   CONSENT_GET_ALL: 'aura:consent:getAll',
   CONSENT_UPDATE: 'aura:consent:update',
-  DEMO_PING: 'aura:demo:ping'
+  DEMO_PING: 'aura:demo:ping',
+  INSIGHTS_GET_SUMMARY: 'aura:insights:getSummary',
+  SECURITY_GET_STATUS: 'aura:security:getStatus',
+  ENV_GET_PLATFORM: 'aura:env:getPlatform'
 });
 
 function resolveChannel(key) {
@@ -40,7 +43,10 @@ const CHANNELS = Object.freeze({
   VAULT_SAVE_ITEM: resolveChannel('VAULT_SAVE_ITEM'),
   CONSENT_GET_ALL: resolveChannel('CONSENT_GET_ALL'),
   CONSENT_UPDATE: resolveChannel('CONSENT_UPDATE'),
-  DEMO_PING: resolveChannel('DEMO_PING')
+  DEMO_PING: resolveChannel('DEMO_PING'),
+  INSIGHTS_GET_SUMMARY: resolveChannel('INSIGHTS_GET_SUMMARY'),
+  SECURITY_GET_STATUS: resolveChannel('SECURITY_GET_STATUS'),
+  ENV_GET_PLATFORM: resolveChannel('ENV_GET_PLATFORM')
 });
 
 function assertIpcAvailable() {
@@ -151,8 +157,17 @@ const api = deepFreeze({
       return safeInvoke(CHANNELS.CONSENT_UPDATE, payload, { requirePayload: true });
     }
   },
-  diagnostics: {
+  demo: {
     ping: () => safeInvoke(CHANNELS.DEMO_PING)
+  },
+  insights: {
+    getSummary: () => safeInvoke(CHANNELS.INSIGHTS_GET_SUMMARY)
+  },
+  security: {
+    getStatus: () => safeInvoke(CHANNELS.SECURITY_GET_STATUS)
+  },
+  env: {
+    getPlatform: () => safeInvoke(CHANNELS.ENV_GET_PLATFORM)
   }
 });
 
