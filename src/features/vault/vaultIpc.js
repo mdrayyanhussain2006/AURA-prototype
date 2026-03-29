@@ -8,7 +8,13 @@ export async function listItems() {
   if (!window.aura?.vault?.listItems) {
     return { ok: false, error: 'Vault API unavailable' };
   }
-  return window.aura.vault.listItems();
+  const res = await window.aura.vault.listItems();
+  
+  // Normalize legacy and new response formats
+  if (Array.isArray(res)) {
+    return { ok: true, items: res };
+  }
+  return res;
 }
 
 /**

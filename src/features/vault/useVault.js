@@ -12,6 +12,10 @@ export function useVault() {
     
     const res = await vaultIpc.listItems();
     
+    if (!res || res.ok === false) {
+      console.error(res?.error || 'Unknown error');
+    }
+    
     if (res.ok) {
       setItems(res.items ?? []);
     } else {
@@ -31,6 +35,10 @@ export function useVault() {
   const saveItem = useCallback(async (id, payload) => {
     setError(null);
     const res = await vaultIpc.saveItem(id, payload);
+    
+    if (!res || res.ok === false) {
+      console.error(res?.error || 'Unknown error');
+    }
     if (res.ok) {
       await refresh();
     } else {
@@ -42,6 +50,10 @@ export function useVault() {
   const getItem = useCallback(async (id) => {
     setError(null);
     const res = await vaultIpc.getItem(id);
+    
+    if (!res || res.ok === false) {
+      console.error(res?.error || 'Unknown error');
+    }
     if (!res.ok) setError(res.error);
     return res;
   }, []);

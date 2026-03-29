@@ -29,16 +29,7 @@ function decrypt(base64Text) {
 }
 
 function registerVaultIpc() {
-  // Mock implementations to prevent crashing
-  ipcMain.handle("vault:getItems", async () => {
-    return readVaultItems();
-  });
-  ipcMain.handle("vault:addItem", async (_, item) => {
-    const items = readVaultItems();
-    items.push(item);
-    writeVaultItems(items);
-    return { success: true };
-  });
+
 
   // --- VAULT_LIST_ITEMS ---
   ipcMain.handle(Channels.VAULT_LIST_ITEMS, async () => {
