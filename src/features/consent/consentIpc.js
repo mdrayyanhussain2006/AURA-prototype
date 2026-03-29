@@ -3,11 +3,19 @@
  */
 
 export async function getAll() {
-  if (!window.aura?.consent?.getAll) return { ok: false, error: 'Consent API not available', consents: {} };
+  if (!window.aura?.consent?.getAll) return { ok: false, error: 'Consent API not available', consents: [] };
   return window.aura.consent.getAll();
 }
 
-export async function update(scope, granted) {
+export async function update(payload, grantedArg) {
   if (!window.aura?.consent?.update) return { ok: false, error: 'Consent API not available' };
-  return window.aura.consent.update({ scope, granted });
+
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    return window.aura.consent.update(payload);
+  }
+
+  return window.aura.consent.update({
+    scope: payload,
+    granted: Boolean(grantedArg)
+  });
 }

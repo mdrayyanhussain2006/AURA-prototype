@@ -1,172 +1,95 @@
-const { app, ipcMain, safeStorage } = require('electron');
-const crypto = require('node:crypto');
-const fs = require('node:fs');
-const path = require('node:path');
+const { ipcMain } = require('electron');
 const Channels = require('../../shared/ipcChannels.cjs');
-const { readData, writeData } = require('../services/storage');
+const { readConsents, writeConsents } = require('../services/consentStorage');
 
-const CONSENT_FILE_PATH = path.join(app.getPath('userData'), 'aura_consents.json');
+function normalizeText(value, fallback) {
+  if (typeof value !== 'string') return fallback;
+  const trimmed = value.trim();
+  return trimmed || fallback;
+}
 
-function createDefaultStore() {
+function scopeToApp(scope) {
+  if (typeof scope !== 'string' || !scope.trim()) return 'Unknown App';
+  return scope.replace(/[_-]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function buildConsentRecord(payload, existingRecord) {
+  const now = new Date().toISOString();
+  const granted = Boolean(payload.granted);
+
   return {
-    version: 1,
-    consents: {},
-    hmacKey: null,
-    integrity: null
+    id: normalizeText(payload.id, existingRecord?.id || `consent_${Date.now()}`),
+    app: normalizeText(payload.app, existingRecord?.app || scopeToApp(payload.scope)),
+    purpose: normalizeText(payload.purpose, existingRecord?.purpose || `Permission scope: ${payload.scope || 'custom'}`),
+    granted,
+    createdAt: normalizeText(payload.createdAt, existingRecord?.createdAt || now),
+    updatedAt: now,
+    revokedAt: granted ? null : now
   };
 }
 
-function serializeConsents(consents) {
-  return JSON.stringify(
-    Object.keys(consents)
-      .sort()
-      .reduce((result, key) => {
-        result[key] = Boolean(consents[key]);
-        return result;
-      }, {})
-  );
-}
-
-function readConsentStore() {
-  if (!fs.existsSync(CONSENT_FILE_PATH)) return createDefaultStore();
-
-  try {
-    const raw = fs.readFileSync(CONSENT_FILE_PATH, 'utf8');
-    const parsed = JSON.parse(raw);
-
-    return {
-      ...createDefaultStore(),
-      ...parsed,
-      consents: parsed && typeof parsed.consents === 'object' && parsed.consents !== null ? parsed.consents : {}
-    };
-  } catch {
-    return createDefaultStore();
-  }
-}
-
-function writeConsentStore(store) {
-  fs.writeFileSync(CONSENT_FILE_PATH, JSON.stringify(store, null, 2), 'utf8');
-}
-
-function signConsents(consents, hmacKey) {
-  return crypto.createHmac('sha256', hmacKey).update(serializeConsents(consents)).digest('hex');
-}
-
-function getOrCreateHmacKey(store) {
-  const existingKey = store.hmacKey;
-
-  if (existingKey && typeof existingKey === 'object' && typeof existingKey.value === 'string') {
-    if (existingKey.encoding === 'safeStorage-base64') {
-      if (!safeStorage.isEncryptionAvailable()) {
-        throw new Error('SAFE_STORAGE_UNAVAILABLE');
-      }
-
-      return safeStorage.decryptString(Buffer.from(existingKey.value, 'base64'));
-    }
-
-    if (existingKey.encoding === 'utf8-base64') {
-      return Buffer.from(existingKey.value, 'base64').toString('utf8');
-    }
+function findConsentIndex(consents, payload) {
+  if (typeof payload.id === 'string' && payload.id.trim()) {
+    return consents.findIndex((record) => record.id === payload.id);
   }
 
-  const hmacKey = crypto.randomBytes(32).toString('base64');
-
-  if (safeStorage.isEncryptionAvailable()) {
-    const encryptedBuffer = safeStorage.encryptString(hmacKey);
-    store.hmacKey = {
-      encoding: 'safeStorage-base64',
-      value: encryptedBuffer.toString('base64')
-    };
-  } else {
-    store.hmacKey = {
-      encoding: 'utf8-base64',
-      value: Buffer.from(hmacKey, 'utf8').toString('base64')
-    };
+  if (typeof payload.app === 'string' && payload.app.trim()) {
+    return consents.findIndex((record) => record.app === payload.app);
   }
 
-  return hmacKey;
-}
-
-function getConsentsWithIntegrityCheck() {
-  const store = readConsentStore();
-  const hmacKey = getOrCreateHmacKey(store);
-
-  if (store.integrity) {
-    const expectedSignature = signConsents(store.consents, hmacKey);
-    if (expectedSignature !== store.integrity) {
-      throw new Error('CONSENT_INTEGRITY_CHECK_FAILED');
-    }
-  } else {
-    store.integrity = signConsents(store.consents, hmacKey);
-    writeConsentStore(store);
+  if (typeof payload.scope === 'string' && payload.scope.trim()) {
+    const appName = scopeToApp(payload.scope);
+    return consents.findIndex((record) => record.app === appName);
   }
 
-  return { consents: store.consents, store, hmacKey };
+  return -1;
 }
 
 function registerConsentIpc() {
-  // Mock implementations to prevent crashing
-  ipcMain.handle("consent:create", async (_, data) => {
-    const db = readData();
-    db.consent.push(data);
-    writeData(db);
-    return { success: true };
-  });
-
-  ipcMain.handle("consent:list", async () => {
-    return readData().consent;
-  });
-
   ipcMain.handle(Channels.CONSENT_GET_ALL, async () => {
     try {
-      const { consents } = getConsentsWithIntegrityCheck();
+      const consents = readConsents();
       return { ok: true, consents };
-    } catch (error) {
-      if (error.message === 'SAFE_STORAGE_UNAVAILABLE') {
-        return { ok: false, error: 'Secure storage is unavailable on this device' };
-      }
-
-      if (error.message === 'CONSENT_INTEGRITY_CHECK_FAILED') {
-        return { ok: false, error: 'Consent data failed integrity validation' };
-      }
-
+    } catch {
       return { ok: false, error: 'Failed to load consent records' };
     }
   });
 
-  ipcMain.handle(Channels.CONSENT_UPDATE, async (_event, { scope, granted }) => {
-    if (!scope || typeof scope !== 'string') {
-      return { ok: false, error: 'Invalid scope' };
+  ipcMain.handle(Channels.CONSENT_UPDATE, async (_event, payload) => {
+    if (!payload || typeof payload !== 'object') {
+      return { ok: false, error: 'Invalid consent payload' };
+    }
+
+    if (typeof payload.granted !== 'boolean') {
+      return { ok: false, error: 'Invalid granted flag' };
     }
 
     try {
-      const { consents, store, hmacKey } = getConsentsWithIntegrityCheck();
-      const nextConsents = {
-        ...consents,
-        [scope]: Boolean(granted)
-      };
+      const consents = readConsents();
+      const index = findConsentIndex(consents, payload);
+      const existingRecord = index > -1 ? consents[index] : null;
+      const newConsent = buildConsentRecord(payload, existingRecord);
 
-      store.consents = nextConsents;
-      store.integrity = signConsents(nextConsents, hmacKey);
-      writeConsentStore(store);
-
-      return { ok: true, consents: nextConsents };
-    } catch (error) {
-      if (error.message === 'SAFE_STORAGE_UNAVAILABLE') {
-        return { ok: false, error: 'Secure storage is unavailable on this device' };
+      if (index > -1) {
+        consents[index] = newConsent;
+      } else {
+        consents.push(newConsent);
       }
 
-      if (error.message === 'CONSENT_INTEGRITY_CHECK_FAILED') {
-        return { ok: false, error: 'Consent data failed integrity validation' };
+      const saved = writeConsents(consents);
+      if (!saved) {
+        return { ok: false, error: 'Failed to persist consent record' };
       }
 
+      return { ok: true, consent: newConsent, consents };
+    } catch {
       return { ok: false, error: 'Failed to update consent record' };
     }
   });
 }
 
-function registerHandlers(ipcMainInstance) {
-  // No-op if already registered
+function registerHandlers() {
+  // Kept for backward compatibility with existing startup checks.
 }
 
 module.exports = { registerConsentIpc, registerHandlers };

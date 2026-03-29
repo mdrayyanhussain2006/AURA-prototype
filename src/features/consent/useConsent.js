@@ -2,29 +2,37 @@ import { useState, useEffect, useCallback } from 'react';
 import * as consentIpc from './consentIpc';
 
 export function useConsent() {
-  const [consents, setConsents] = useState({});
+  const [consents, setConsents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const refresh = useCallback(async () => {
+  const loadConsents = useCallback(async () => {
     setLoading(true);
     setError(null);
+
     const res = await consentIpc.getAll();
-    if (res.ok) setConsents(res.consents ?? {});
-    else setError(res.error ?? 'Failed to load consents');
+    if (res.ok) {
+      setConsents(Array.isArray(res.consents) ? res.consents : []);
+    } else {
+      setError(res.error ?? 'Failed to load consents');
+    }
+
     setLoading(false);
     return res;
   }, []);
 
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    loadConsents();
+  }, [loadConsents]);
 
-  const updateConsent = useCallback(async (scope, granted) => {
-    const res = await consentIpc.update(scope, granted);
-    if (res.ok) await refresh();
+  const updateConsent = useCallback(async (data) => {
+    const res = await consentIpc.update(data);
+    if (res.ok) {
+      await loadConsents();
+    }
+
     return res;
-  }, [refresh]);
+  }, [loadConsents]);
 
-  return { consents, loading, error, refresh, updateConsent };
+  return { consents, loading, error, loadConsents, updateConsent };
 }
