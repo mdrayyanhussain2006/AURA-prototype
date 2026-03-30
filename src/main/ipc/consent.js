@@ -1,6 +1,6 @@
 const { ipcMain } = require('electron');
 const Channels = require('../../shared/ipcChannels.cjs');
-const { readConsents, writeConsents } = require('../services/consentStorage');
+const { inferRiskLevel, readConsents, writeConsents } = require('../services/consentStorage');
 
 function normalizeText(value, fallback) {
   if (typeof value !== 'string') return fallback;
@@ -13,18 +13,55 @@ function scopeToApp(scope) {
   return scope.replace(/[_-]/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
+function toIsoOrNull(value) {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function normalizeHistory(history) {
+  if (!Array.isArray(history)) return [];
+  return history
+    .filter((entry) => entry && typeof entry === 'object' && typeof entry.action === 'string')
+    .map((entry) => ({
+      action: entry.action,
+      at: toIsoOrNull(entry.at) || new Date().toISOString()
+    }));
+}
+
 function buildConsentRecord(payload, existingRecord) {
   const now = new Date().toISOString();
   const granted = Boolean(payload.granted);
+  const createdAt = normalizeText(payload.createdAt, existingRecord?.createdAt || now);
+  const history = normalizeHistory(existingRecord?.history);
+  const wasGranted = Boolean(existingRecord?.granted);
+  const action = existingRecord
+    ? granted === wasGranted ? 'updated' : granted ? 'granted' : 'revoked'
+    : granted ? 'granted' : 'revoked';
+  const riskLevel = payload.riskLevel === 'high' || payload.riskLevel === 'moderate' || payload.riskLevel === 'safe'
+    ? payload.riskLevel
+    : existingRecord?.riskLevel || inferRiskLevel(payload.app || existingRecord?.app, payload.purpose || existingRecord?.purpose);
+  const expiresAt = toIsoOrNull(payload.expiresAt) || toIsoOrNull(existingRecord?.expiresAt);
 
   return {
     id: normalizeText(payload.id, existingRecord?.id || `consent_${Date.now()}`),
     app: normalizeText(payload.app, existingRecord?.app || scopeToApp(payload.scope)),
     purpose: normalizeText(payload.purpose, existingRecord?.purpose || `Permission scope: ${payload.scope || 'custom'}`),
     granted,
-    createdAt: normalizeText(payload.createdAt, existingRecord?.createdAt || now),
+    riskLevel,
+    createdAt,
     updatedAt: now,
-    revokedAt: granted ? null : now
+    revokedAt: granted ? null : now,
+    expiresAt,
+    lastUsedAt: toIsoOrNull(existingRecord?.lastUsedAt),
+    lastUsedBy: normalizeText(existingRecord?.lastUsedBy, null),
+    history: [
+      ...history,
+      {
+        action,
+        at: now
+      }
+    ]
   };
 }
 

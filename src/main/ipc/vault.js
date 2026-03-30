@@ -2,6 +2,7 @@ const { ipcMain, safeStorage } = require('electron');
 const Channels = require('../../shared/ipcChannels.cjs');
 const { getSessionState } = require('./auth');
 const { readVaultItems, writeVaultItems } = require('../services/storage');
+const { appendActivityEvent } = require('../services/activityLog');
 
 /**
  * Helper: Encrypt string to Base64
@@ -49,6 +50,13 @@ function registerVaultIpc() {
         type: item.type
       }));
 
+      appendActivityEvent({
+        feature: 'Vault',
+        action: 'list_items',
+        target: 'vault',
+        meta: { count: items.length }
+      });
+
       return { ok: true, items };
     } catch (err) {
       const message = err.message === 'OS_ACCESS_DENIED' 
@@ -88,6 +96,13 @@ function registerVaultIpc() {
         return { ok: false, error: 'Failed to persist vault item' };
       }
 
+      appendActivityEvent({
+        feature: 'Vault',
+        action: index > -1 ? 'update_item' : 'create_item',
+        target: 'vault_item',
+        meta: { id: encryptedItem.id, type: encryptedItem.type }
+      });
+
       return { ok: true, id: encryptedItem.id };
     } catch (err) {
       return { ok: false, error: 'Encryption failed: Could not secure data' };
@@ -104,6 +119,13 @@ function registerVaultIpc() {
       const items = readVaultItems();
       const item = items.find(i => i.id === id);
       if (!item) return { ok: false, error: 'Item not found' };
+
+      appendActivityEvent({
+        feature: 'Vault',
+        action: 'read_item',
+        target: 'vault_item',
+        meta: { id: item.id }
+      });
 
       return {
         ok: true,
