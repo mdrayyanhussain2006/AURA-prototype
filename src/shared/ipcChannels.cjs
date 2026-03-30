@@ -18,6 +18,9 @@ module.exports = Object.freeze({
   MARKETPLACE_GET_ITEM_DETAILS: 'aura:marketplace:getItemDetails',
   SECURITY_GET_STATUS: 'aura:security:getStatus',
   SECURITY_GET_POLICIES: 'aura:security:getPolicies',
+  SETTINGS_GET: 'aura:settings:get',
+  SETTINGS_UPDATE: 'aura:settings:update',
+  SETTINGS_RESET: 'aura:settings:reset',
   STORAGE_SAVE_SECURE_ITEM: 'aura:storage:saveSecureItem',
   STORAGE_GET_SECURE_ITEM: 'aura:storage:getSecureItem'
 });

@@ -10,14 +10,33 @@ export function useSecurity() {
   const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const [statusRes, policiesRes] = await Promise.all([
-      securityIpc.getStatus(),
-      securityIpc.getPolicies()
-    ]);
-    if (statusRes.ok) setStatus(statusRes.status ?? null);
-    if (policiesRes.ok) setPolicies(policiesRes.policies ?? null);
-    if (!statusRes.ok) setError(statusRes.error ?? 'Failed to load security');
-    setLoading(false);
+
+    try {
+      const [statusRes, policiesRes] = await Promise.all([securityIpc.getStatus(), securityIpc.getPolicies()]);
+
+      const nextStatus = statusRes.ok ? statusRes.status ?? null : null;
+      const nextPolicies = policiesRes.ok ? policiesRes.policies ?? null : null;
+      const errors = [statusRes.ok ? '' : statusRes.error, policiesRes.ok ? '' : policiesRes.error].filter(Boolean);
+
+      setStatus(nextStatus);
+      setPolicies(nextPolicies);
+
+      if (errors.length > 0) {
+        const message = errors.join(' | ');
+        setError(message);
+        return { ok: false, error: message, status: nextStatus, policies: nextPolicies };
+      }
+
+      return { ok: true, status: nextStatus, policies: nextPolicies };
+    } catch (err) {
+      setStatus(null);
+      setPolicies(null);
+      const message = err instanceof Error ? err.message : 'Failed to load security data';
+      setError(message);
+      return { ok: false, error: message, status: null, policies: null };
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

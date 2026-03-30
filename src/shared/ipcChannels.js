@@ -23,6 +23,11 @@ const IPC_CHANNELS = Object.freeze({
   // Security
   SECURITY_GET_STATUS: 'aura:security:getStatus',
 
+  // Settings
+  SETTINGS_GET: 'aura:settings:get',
+  SETTINGS_UPDATE: 'aura:settings:update',
+  SETTINGS_RESET: 'aura:settings:reset',
+
   // Env
   ENV_GET_PLATFORM: 'aura:env:getPlatform'
 });

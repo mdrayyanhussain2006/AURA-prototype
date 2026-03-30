@@ -8,6 +8,7 @@ module.exports = Object.freeze({
     MARKETPLACE: 'marketplace',
     CONSENT: 'consent',
     SECURITY: 'security',
+    SETTINGS: 'settings',
     DEMO: 'demo'
   }),
   DEFAULTS: Object.freeze({

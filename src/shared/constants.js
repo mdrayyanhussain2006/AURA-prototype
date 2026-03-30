@@ -13,6 +13,7 @@ export const FEATURES = Object.freeze({
   MARKETPLACE: 'marketplace',
   CONSENT: 'consent',
   SECURITY: 'security',
+  SETTINGS: 'settings',
   DEMO: 'demo'
 });
 

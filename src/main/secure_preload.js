@@ -14,7 +14,14 @@ try {
     VAULT_SAVE_ITEM: 'aura:vault:saveItem',
     CONSENT_GET_ALL: 'aura:consent:getAll',
     CONSENT_UPDATE: 'aura:consent:update',
-    DEMO_PING: 'aura:demo:ping'
+    DEMO_PING: 'aura:demo:ping',
+    MARKETPLACE_LIST_ITEMS: 'aura:marketplace:listItems',
+    MARKETPLACE_GET_ITEM_DETAILS: 'aura:marketplace:getItemDetails',
+    SECURITY_GET_STATUS: 'aura:security:getStatus',
+    SECURITY_GET_POLICIES: 'aura:security:getPolicies',
+    SETTINGS_GET: 'aura:settings:get',
+    SETTINGS_UPDATE: 'aura:settings:update',
+    SETTINGS_RESET: 'aura:settings:reset'
   };
 }
 
@@ -28,7 +35,13 @@ const FALLBACK_CHANNELS = Object.freeze({
   CONSENT_UPDATE: 'aura:consent:update',
   DEMO_PING: 'aura:demo:ping',
   INSIGHTS_GET_SUMMARY: 'aura:insights:getSummary',
+  MARKETPLACE_LIST_ITEMS: 'aura:marketplace:listItems',
+  MARKETPLACE_GET_ITEM_DETAILS: 'aura:marketplace:getItemDetails',
   SECURITY_GET_STATUS: 'aura:security:getStatus',
+  SECURITY_GET_POLICIES: 'aura:security:getPolicies',
+  SETTINGS_GET: 'aura:settings:get',
+  SETTINGS_UPDATE: 'aura:settings:update',
+  SETTINGS_RESET: 'aura:settings:reset',
   ENV_GET_PLATFORM: 'aura:env:getPlatform'
 });
 
@@ -45,7 +58,13 @@ const CHANNELS = Object.freeze({
   CONSENT_UPDATE: resolveChannel('CONSENT_UPDATE'),
   DEMO_PING: resolveChannel('DEMO_PING'),
   INSIGHTS_GET_SUMMARY: resolveChannel('INSIGHTS_GET_SUMMARY'),
+  MARKETPLACE_LIST_ITEMS: resolveChannel('MARKETPLACE_LIST_ITEMS'),
+  MARKETPLACE_GET_ITEM_DETAILS: resolveChannel('MARKETPLACE_GET_ITEM_DETAILS'),
   SECURITY_GET_STATUS: resolveChannel('SECURITY_GET_STATUS'),
+  SECURITY_GET_POLICIES: resolveChannel('SECURITY_GET_POLICIES'),
+  SETTINGS_GET: resolveChannel('SETTINGS_GET'),
+  SETTINGS_UPDATE: resolveChannel('SETTINGS_UPDATE'),
+  SETTINGS_RESET: resolveChannel('SETTINGS_RESET'),
   ENV_GET_PLATFORM: resolveChannel('ENV_GET_PLATFORM')
 });
 
@@ -163,8 +182,24 @@ const api = deepFreeze({
   insights: {
     getSummary: () => safeInvoke(CHANNELS.INSIGHTS_GET_SUMMARY)
   },
+  marketplace: {
+    listItems: () => safeInvoke(CHANNELS.MARKETPLACE_LIST_ITEMS),
+    getItemDetails: (payload) => {
+      assertObjectPayload(payload, 'marketplace.getItemDetails');
+      return safeInvoke(CHANNELS.MARKETPLACE_GET_ITEM_DETAILS, payload, { requirePayload: true });
+    }
+  },
   security: {
-    getStatus: () => safeInvoke(CHANNELS.SECURITY_GET_STATUS)
+    getStatus: () => safeInvoke(CHANNELS.SECURITY_GET_STATUS),
+    getPolicies: () => safeInvoke(CHANNELS.SECURITY_GET_POLICIES)
+  },
+  settings: {
+    get: () => safeInvoke(CHANNELS.SETTINGS_GET),
+    update: (payload) => {
+      assertObjectPayload(payload, 'settings.update');
+      return safeInvoke(CHANNELS.SETTINGS_UPDATE, payload, { requirePayload: true });
+    },
+    reset: () => safeInvoke(CHANNELS.SETTINGS_RESET)
   },
   env: {
     getPlatform: () => safeInvoke(CHANNELS.ENV_GET_PLATFORM)

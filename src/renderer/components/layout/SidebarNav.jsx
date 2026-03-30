@@ -8,7 +8,8 @@ const FEATURES = [
   { key: Constants.FEATURES.INSIGHTS, label: 'Insights', to: '/insights', emoji: '📊' },
   { key: Constants.FEATURES.MARKETPLACE, label: 'Marketplace', to: '/marketplace', emoji: '🛒' },
   { key: Constants.FEATURES.SECURITY, label: 'Security', to: '/security', emoji: '🛡️' },
-  { key: Constants.FEATURES.DEMO, label: 'Demo', to: '/demo', emoji: '⚙️' }
+  { key: Constants.FEATURES.SETTINGS, label: 'Settings', to: '/settings', emoji: '⚙️' },
+  { key: Constants.FEATURES.DEMO, label: 'Demo', to: '/demo', emoji: '🧪' }
 ];
 
 export default function SidebarNav() {
