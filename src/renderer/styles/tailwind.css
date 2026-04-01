@@ -26,6 +26,21 @@
     letter-spacing: -0.01em;
     -webkit-font-smoothing: antialiased;
   }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
 }
 
 @layer components {
@@ -67,5 +82,35 @@
       radial-gradient(circle at 20% 20%, rgba(255, 214, 235, 0.25), transparent 45%),
       radial-gradient(circle at 85% 10%, rgba(205, 170, 255, 0.2), transparent 40%);
   }
-}
 
+  /* Skeleton shimmer */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+
+  .aura-shimmer {
+    background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.06) 50%, transparent 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+
+  /* Progress ring */
+  .aura-progress-ring {
+    transform: rotate(-90deg);
+    transform-origin: 50% 50%;
+  }
+
+  /* Active sidebar indicator */
+  .aura-nav-active-bar {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 24px;
+    border-radius: 0 4px 4px 0;
+    background: linear-gradient(180deg, #a855f7, #ec4899);
+    box-shadow: 0 0 12px rgba(168, 85, 247, 0.6);
+  }
+}

@@ -58,5 +58,19 @@ export function useVault() {
     return res;
   }, []);
 
-  return { items, loading, error, refresh, getItem, saveItem };
+  const deleteItem = useCallback(async (id) => {
+    setError(null);
+    const res = await vaultIpc.deleteItem(id);
+    if (!res || res.ok === false) {
+      console.error(res?.error || 'Unknown error');
+    }
+    if (res.ok) {
+      await refresh();
+    } else {
+      setError(res.error);
+    }
+    return res;
+  }, [refresh]);
+
+  return { items, loading, error, refresh, getItem, saveItem, deleteItem };
 }

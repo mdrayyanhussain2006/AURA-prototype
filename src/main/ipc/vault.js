@@ -140,10 +140,68 @@ function registerVaultIpc() {
       return { ok: false, error: 'Decryption failed' };
     }
   });
+
+  // --- VAULT_DELETE_ITEM ---
+  ipcMain.handle(Channels.VAULT_DELETE_ITEM, async (_event, { id }) => {
+    if (!id || typeof id !== 'string') {
+      return { ok: false, error: 'Invalid item id' };
+    }
+
+    try {
+      const items = readVaultItems();
+      const index = items.findIndex(i => i.id === id);
+      if (index === -1) return { ok: false, error: 'Item not found' };
+
+      items.splice(index, 1);
+      const writeOk = writeVaultItems(items);
+      if (!writeOk) {
+        return { ok: false, error: 'Failed to persist deletion' };
+      }
+
+      appendActivityEvent({
+        feature: 'Vault',
+        action: 'delete_item',
+        target: 'vault_item',
+        meta: { id }
+      });
+
+      return { ok: true, id };
+    } catch (err) {
+      return { ok: false, error: 'Failed to delete item' };
+    }
+  });
+
+  // --- VAULT_EXPORT_ALL ---
+  ipcMain.handle(Channels.VAULT_EXPORT_ALL, async () => {
+    try {
+      const rawItems = readVaultItems();
+      const items = rawItems.map(item => ({
+        id: item.id,
+        title: decrypt(item.encryptedTitle),
+        content: decrypt(item.encryptedContent),
+        type: item.type,
+        updatedAt: item.updatedAt
+      }));
+
+      appendActivityEvent({
+        feature: 'Vault',
+        action: 'export_all',
+        target: 'vault',
+        meta: { count: items.length }
+      });
+
+      return { ok: true, items };
+    } catch (err) {
+      const message = err.message === 'OS_ACCESS_DENIED'
+        ? 'Access denied by System Keychain'
+        : 'Failed to export vault';
+      return { ok: false, error: message };
+    }
+  });
 }
 
 function registerHandlers(ipcMainInstance) {
-  // No-op if already registered
+  // No-op — kept for backward compatibility with main.js startup
 }
 
 module.exports = { registerVaultIpc, registerHandlers };

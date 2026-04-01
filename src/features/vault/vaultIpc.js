@@ -38,3 +38,14 @@ export async function saveItem(id, payload) {
   }
   return window.aura.vault.saveItem({ id, payload });
 }
+
+/**
+ * Permanently deletes an item from the vault.
+ * @param {string} id - ID of the item to delete.
+ */
+export async function deleteItem(id) {
+  if (!window.aura?.vault?.deleteItem) {
+    return { ok: false, error: 'Vault API unavailable' };
+  }
+  return window.aura.vault.deleteItem({ id });
+}

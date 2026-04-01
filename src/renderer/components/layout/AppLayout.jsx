@@ -1,9 +1,34 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import SidebarNav from './SidebarNav';
 import TopBar from './TopBar';
 import CursorDriftBackground from './CursorDriftBackground';
+import VaultLockOverlay from '../ui/VaultLockOverlay';
+import { useAutoLock } from '../../hooks/useAutoLock';
 
 function AppLayout({ children }) {
+  const [autoLockMinutes, setAutoLockMinutes] = useState(10);
+
+  // Load auto-lock setting from settings
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const res = await window.aura?.settings?.get?.();
+        if (mounted && res?.ok && res.settings) {
+          const mins = Number(res.settings.autoLockMinutes);
+          if (Number.isFinite(mins) && mins >= 1) {
+            setAutoLockMinutes(mins);
+          }
+        }
+      } catch {
+        // keep default
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
+
+  const { isLocked, unlock } = useAutoLock(autoLockMinutes, true);
+
   return (
     <div className="aura-app-shell relative min-h-screen w-screen overflow-hidden bg-gradient-to-br from-[#020617] to-[#0f172a] text-white">
       <CursorDriftBackground />
@@ -20,9 +45,11 @@ function AppLayout({ children }) {
           </main>
         </div>
       </div>
+
+      {/* Auto-lock overlay */}
+      {isLocked && <VaultLockOverlay onUnlock={unlock} />}
     </div>
   );
 }
 
 export default AppLayout;
-

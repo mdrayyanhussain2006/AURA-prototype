@@ -1,20 +1,14 @@
 const { ipcMain, app } = require('electron');
 const Channels = require('../../shared/ipcChannels.cjs');
 
-function registerHandler(channelName, handler) {
-  if (!channelName) return;
-  ipcMain.handle(channelName, handler);
-}
-
 function registerEnvIpc() {
-  registerHandler('aura:env:getAppName', async () => {
-    return app.getName();
+  ipcMain.handle(Channels.ENV_GET_APP_NAME, async () => {
+    return { ok: true, name: app.getName() };
   });
 
-  registerHandler('aura:env:getPlatform', async () => {
-    return process.platform;
+  ipcMain.handle(Channels.ENV_GET_PLATFORM, async () => {
+    return { ok: true, platform: process.platform };
   });
 }
 
 module.exports = { registerEnvIpc };
-
