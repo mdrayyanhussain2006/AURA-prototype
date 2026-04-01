@@ -1,6 +1,7 @@
 const { ipcMain, safeStorage } = require('electron');
 const Channels = require('../../shared/ipcChannels.cjs');
 const { defaultBrowserWindowOptions } = require('../security');
+const { ensureOfflineCapable } = require('../services/offlineGuard');
 
 function getRuntimeSecurityFlags() {
   const webPreferences = defaultBrowserWindowOptions?.webPreferences || {};
@@ -42,6 +43,7 @@ function buildIntegritySummary(flags) {
 
 function buildStatusPayload() {
   const flags = getRuntimeSecurityFlags();
+  const offlineStatus = ensureOfflineCapable();
 
   return {
     vaultLocked: false,
@@ -51,6 +53,8 @@ function buildStatusPayload() {
     sandboxEnabled: flags.sandboxEnabled,
     nodeIntegrationDisabled: flags.nodeIntegrationDisabled,
     secureStorageAvailable: flags.secureStorageAvailable,
+    keychainAvailable: flags.secureStorageAvailable,
+    offlineCapable: offlineStatus.offlineCapable,
     integrity: buildIntegritySummary(flags)
   };
 }

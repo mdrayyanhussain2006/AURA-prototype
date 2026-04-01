@@ -7,10 +7,12 @@ import {
   Store,
   Settings,
   FileCheck2,
-  FlaskConical
+  FlaskConical,
+  LayoutDashboard
 } from 'lucide-react';
 
 const FEATURES = [
+  { label: 'Dashboard', to: '/dashboard', icon: LayoutDashboard },
   { label: 'Vault', to: '/vault', icon: Lock },
   { label: 'Consent', to: '/consent', icon: FileCheck2 },
   { label: 'Insights', to: '/insights', icon: BarChart3 },

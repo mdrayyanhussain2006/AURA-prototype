@@ -7,7 +7,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 //  blocks require() for relative modules.
 //
 //  These MUST match src/shared/ipcChannels.cjs exactly.
-//  If you add a channel there, add it here too.
+//  Run `node scripts/validate-channels.cjs` to verify sync.
 // ──────────────────────────────────────────────
 
 const CH = Object.freeze({
@@ -88,6 +88,35 @@ async function safeInvoke(channel, payload) {
 }
 
 // ──────────────────────────────────────────────
+//  Push listener registry — for Main→Renderer channels
+// ──────────────────────────────────────────────
+
+const pushListeners = new Map();
+
+function registerPushListener(channel, callback) {
+  if (typeof callback !== 'function') {
+    throw new TypeError('Push listener callback must be a function');
+  }
+
+  // Wrap the callback to extract the data argument from ipcRenderer.on
+  const wrapped = (_event, data) => callback(data);
+
+  // Remove previous listener if any (prevent leaks)
+  removePushListener(channel);
+
+  pushListeners.set(channel, wrapped);
+  ipcRenderer.on(channel, wrapped);
+}
+
+function removePushListener(channel) {
+  const existing = pushListeners.get(channel);
+  if (existing) {
+    ipcRenderer.removeListener(channel, existing);
+    pushListeners.delete(channel);
+  }
+}
+
+// ──────────────────────────────────────────────
 //  API surface — one source, one mapping, no magic
 // ──────────────────────────────────────────────
 
@@ -110,7 +139,10 @@ const api = Object.freeze({
   }),
 
   insights: Object.freeze({
-    getSummary: () => safeInvoke(CH.INSIGHTS_GET_SUMMARY)
+    getSummary: () => safeInvoke(CH.INSIGHTS_GET_SUMMARY),
+    // Push listener: Main process pushes health audit data every 30s
+    onHealthUpdate: (callback) => registerPushListener(CH.INSIGHTS_GET_SUMMARY, callback),
+    removeHealthListener: () => removePushListener(CH.INSIGHTS_GET_SUMMARY)
   }),
 
   marketplace: Object.freeze({

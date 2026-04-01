@@ -6,6 +6,7 @@ const {
   readSettings,
   writeSettings
 } = require('../services/settingsStorage');
+const { SettingsUpdateSchema, validatePayload } = require('./schemas');
 
 function isObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -35,10 +36,12 @@ function registerSettingsIpc() {
     }
   });
 
-  ipcMain.handle(Channels.SETTINGS_UPDATE, async (_event, payload) => {
-    if (!isObject(payload)) {
-      return { ok: false, error: 'Invalid settings payload' };
-    }
+  ipcMain.handle(Channels.SETTINGS_UPDATE, async (_event, rawPayload) => {
+    // ── Zod Schema Validation ──
+    const validation = validatePayload(SettingsUpdateSchema, rawPayload, 'SETTINGS_UPDATE');
+    if (!validation.ok) return validation;
+
+    const payload = validation.data;
 
     try {
       const current = readSettings();

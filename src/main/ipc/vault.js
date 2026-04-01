@@ -3,13 +3,19 @@ const Channels = require('../../shared/ipcChannels.cjs');
 const { getSessionState } = require('./auth');
 const { readVaultItems, writeVaultItems } = require('../services/storage');
 const { appendActivityEvent } = require('../services/activityLog');
+const { quickRedact } = require('../services/redactionGate');
+const {
+  VaultSaveItemSchema,
+  VaultGetItemSchema,
+  VaultDeleteItemSchema,
+  validatePayload
+} = require('./schemas');
 
 /**
- * Helper: Encrypt string to Base64
+ * Helper: Encrypt string to Base64 via OS Keychain (DPAPI / Keychain)
  */
 function encrypt(text) {
   if (!text) return '';
-  // safeStorage.encryptString returns a Buffer
   const encryptedBuffer = safeStorage.encryptString(text);
   return encryptedBuffer.toString('base64');
 }
@@ -31,15 +37,13 @@ function decrypt(base64Text) {
 
 function registerVaultIpc() {
 
+  // ── Startup guard: Verify OS Keychain is available ──
+  if (!safeStorage.isEncryptionAvailable()) {
+    console.error('[Vault] OS Keychain unavailable — vault encryption will not function.');
+  }
 
   // --- VAULT_LIST_ITEMS ---
   ipcMain.handle(Channels.VAULT_LIST_ITEMS, async () => {
-    const session = getSessionState();
-    // Demo bypass for controlled execution mode:
-    // if (!session) {
-    //   return { ok: false, error: 'Unauthorized: Please login to access the vault' };
-    // }
-
     try {
       const rawItems = readVaultItems();
       // Decrypt titles for the UI list, but do NOT decrypt content here (performance/security)
@@ -59,27 +63,48 @@ function registerVaultIpc() {
 
       return { ok: true, items };
     } catch (err) {
-      const message = err.message === 'OS_ACCESS_DENIED' 
-        ? 'Access denied by System Keychain' 
+      const message = err.message === 'OS_ACCESS_DENIED'
+        ? 'Access denied by System Keychain'
         : 'Failed to read vault';
       return { ok: false, error: message };
     }
   });
 
-  // --- VAULT_SAVE_ITEM ---
-  ipcMain.handle(Channels.VAULT_SAVE_ITEM, async (_event, { id, payload }) => {
-    const session = getSessionState();
-    // Demo bypass for controlled execution mode:
-    // if (!session) {
-    //   return { ok: false, error: 'Unauthorized: Please login to access the vault' };
-    // }
+  // --- VAULT_SAVE_ITEM (with Zod Validation + Redaction Privacy Gate) ---
+  ipcMain.handle(Channels.VAULT_SAVE_ITEM, async (_event, rawPayload) => {
+    // ── Step 1: Schema validation ──
+    const validation = validatePayload(VaultSaveItemSchema, rawPayload, 'VAULT_SAVE_ITEM');
+    if (!validation.ok) return validation;
+
+    const { id, payload } = validation.data;
 
     try {
+      // ── Step 2: Redaction Privacy Gate ──
+      // Scrub PII BEFORE encryption — even if the renderer already redacted,
+      // the server-side gate is the authoritative defense.
+      const titleRedaction = quickRedact(payload.title);
+      const contentRedaction = quickRedact(payload.content);
+
+      const redactedTitle = titleRedaction.redacted;
+      const redactedContent = contentRedaction.redacted;
+
+      // Log redaction activity if anything was scrubbed
+      const allRedactions = [...titleRedaction.redactionSummary, ...contentRedaction.redactionSummary];
+      if (allRedactions.length > 0) {
+        appendActivityEvent({
+          feature: 'RedactionGate',
+          action: 'pii_scrubbed',
+          target: 'vault_item',
+          meta: { redactedTypes: allRedactions, itemId: id || 'new' }
+        });
+      }
+
+      // ── Step 3: Encrypt and persist ──
       const items = readVaultItems();
       const encryptedItem = {
         id: id || `aura_${Date.now()}`,
-        encryptedTitle: encrypt(payload.title),
-        encryptedContent: encrypt(payload.content),
+        encryptedTitle: encrypt(redactedTitle),
+        encryptedContent: encrypt(redactedContent),
         type: payload.type || 'note',
         updatedAt: new Date().toISOString()
       };
@@ -109,11 +134,12 @@ function registerVaultIpc() {
     }
   });
 
-  // --- VAULT_GET_ITEM ---
-  ipcMain.handle(Channels.VAULT_GET_ITEM, async (_event, { id }) => {
-    const session = getSessionState();
-    // Demo bypass for controlled execution mode:
-    // if (!session) return { ok: false, error: 'Unauthorized' };
+  // --- VAULT_GET_ITEM (with Zod Validation) ---
+  ipcMain.handle(Channels.VAULT_GET_ITEM, async (_event, rawPayload) => {
+    const validation = validatePayload(VaultGetItemSchema, rawPayload, 'VAULT_GET_ITEM');
+    if (!validation.ok) return validation;
+
+    const { id } = validation.data;
 
     try {
       const items = readVaultItems();
@@ -141,11 +167,12 @@ function registerVaultIpc() {
     }
   });
 
-  // --- VAULT_DELETE_ITEM ---
-  ipcMain.handle(Channels.VAULT_DELETE_ITEM, async (_event, { id }) => {
-    if (!id || typeof id !== 'string') {
-      return { ok: false, error: 'Invalid item id' };
-    }
+  // --- VAULT_DELETE_ITEM (with Zod Validation) ---
+  ipcMain.handle(Channels.VAULT_DELETE_ITEM, async (_event, rawPayload) => {
+    const validation = validatePayload(VaultDeleteItemSchema, rawPayload, 'VAULT_DELETE_ITEM');
+    if (!validation.ok) return validation;
+
+    const { id } = validation.data;
 
     try {
       const items = readVaultItems();

@@ -1,6 +1,7 @@
 const { ipcMain } = require('electron');
 const Channels = require('../../shared/ipcChannels.cjs');
 const { inferRiskLevel, readConsents, writeConsents } = require('../services/consentStorage');
+const { ConsentUpdateSchema, validatePayload } = require('./schemas');
 
 function normalizeText(value, fallback) {
   if (typeof value !== 'string') return fallback;
@@ -92,14 +93,12 @@ function registerConsentIpc() {
     }
   });
 
-  ipcMain.handle(Channels.CONSENT_UPDATE, async (_event, payload) => {
-    if (!payload || typeof payload !== 'object') {
-      return { ok: false, error: 'Invalid consent payload' };
-    }
+  ipcMain.handle(Channels.CONSENT_UPDATE, async (_event, rawPayload) => {
+    // ── Zod Schema Validation ──
+    const validation = validatePayload(ConsentUpdateSchema, rawPayload, 'CONSENT_UPDATE');
+    if (!validation.ok) return validation;
 
-    if (typeof payload.granted !== 'boolean') {
-      return { ok: false, error: 'Invalid granted flag' };
-    }
+    const payload = validation.data;
 
     try {
       const consents = readConsents();

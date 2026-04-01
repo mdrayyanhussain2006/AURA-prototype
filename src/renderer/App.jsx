@@ -15,7 +15,7 @@ function App() {
   return (
     <AppLayout>
       <Routes>
-        <Route path="/" element={<Navigate to="/vault" replace />} />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/vault" element={<Vault />} />
         <Route path="/consent" element={<ConsentPage />} />
@@ -25,7 +25,7 @@ function App() {
         <Route path="/demo" element={<Demo />} />
         <Route path="/archives" element={<ArchivesPage />} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="*" element={<Navigate to="/vault" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </AppLayout>
   );
