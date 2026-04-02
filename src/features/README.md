@@ -6,7 +6,7 @@ Each feature under `src/features/` follows the same layout:
 - **`use<Feature>.js`** — Dedicated hook (state + IPC calls).
 - **`<feature>Ipc.js`** — IPC service (renderer-side only; invokes `window.aura.<feature>`).
 
-Main process handlers live in `src/main/ipc/` (e.g. `auth.js`, `vault.js`). Channel names are defined in `src/shared/ipcChannels.js`. Shared app constants are in `src/shared/constants.js` and used by both main and renderer.
+Main process handlers live in `src/main/ipc/` (e.g. `auth.js`, `vault.js`). Channel names are defined in `src/shared/ipcChannels.cjs`. Shared app constants are in `src/shared/constants.js` and used by both main and renderer.
 
 ## Features
 

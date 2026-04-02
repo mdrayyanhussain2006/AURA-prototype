@@ -7,7 +7,6 @@ import {
   Store,
   Settings,
   FileCheck2,
-  FlaskConical,
   LayoutDashboard
 } from 'lucide-react';
 
@@ -61,21 +60,6 @@ export default function SidebarNav() {
           );
         })}
       </ul>
-
-      {/* Footer */}
-      <div className="mt-auto shrink-0 py-4">
-        <NavLink
-          to="/demo"
-          className={`flex h-9 w-9 items-center justify-center rounded-lg transition-all duration-200 ${
-            location.pathname === '/demo'
-              ? 'bg-white/10 text-white'
-              : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'
-          }`}
-          title="Demo"
-        >
-          <FlaskConical size={16} strokeWidth={1.5} />
-        </NavLink>
-      </div>
     </nav>
   );
 }

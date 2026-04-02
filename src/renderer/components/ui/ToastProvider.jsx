@@ -48,8 +48,14 @@ export function useToast() {
 export default function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const idRef = useRef(0);
+  const timersRef = useRef(new Map());
 
   const dismiss = useCallback((id) => {
+    const timeoutHandle = timersRef.current.get(id);
+    if (timeoutHandle) {
+      clearTimeout(timeoutHandle);
+      timersRef.current.delete(id);
+    }
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
@@ -57,10 +63,22 @@ export default function ToastProvider({ children }) {
     const id = ++idRef.current;
     setToasts((prev) => {
       const next = [...prev, { id, message, variant }];
+      const overflow = next.length - TOAST_LIMIT;
+      if (overflow > 0) {
+        const removed = next.slice(0, overflow);
+        for (const item of removed) {
+          const timeoutHandle = timersRef.current.get(item.id);
+          if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+            timersRef.current.delete(item.id);
+          }
+        }
+      }
       return next.length > TOAST_LIMIT ? next.slice(-TOAST_LIMIT) : next;
     });
     if (duration > 0) {
-      setTimeout(() => dismiss(id), duration);
+      const timeoutHandle = setTimeout(() => dismiss(id), duration);
+      timersRef.current.set(id, timeoutHandle);
     }
     return id;
   }, [dismiss]);
@@ -68,6 +86,15 @@ export default function ToastProvider({ children }) {
   const success = useCallback((msg, dur) => toast(msg, 'success', dur), [toast]);
   const error = useCallback((msg, dur) => toast(msg, 'error', dur), [toast]);
   const info = useCallback((msg, dur) => toast(msg, 'info', dur), [toast]);
+
+  React.useEffect(() => {
+    return () => {
+      for (const timeoutHandle of timersRef.current.values()) {
+        clearTimeout(timeoutHandle);
+      }
+      timersRef.current.clear();
+    };
+  }, []);
 
   return (
     <ToastContext.Provider value={{ toast, success, error, info, dismiss }}>

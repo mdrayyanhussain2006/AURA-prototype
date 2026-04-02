@@ -13,16 +13,23 @@ const ROUTE_META = {
   '/archives': { title: 'Archives', subtitle: 'Browse archived vault entries.' }
 };
 
+function normalizePlatform(value) {
+  if (typeof value !== 'string') return 'Desktop';
+  const raw = value.trim().toLowerCase();
+  if (!raw) return 'Desktop';
+  if (raw === 'win32' || raw.startsWith('win')) return 'Windows';
+  if (raw === 'darwin' || raw.startsWith('mac')) return 'macOS';
+  if (raw === 'linux') return 'Linux';
+  return value;
+}
+
 function TopBar() {
   const location = useLocation();
   const meta = ROUTE_META[location.pathname] || { title: 'AURA', subtitle: 'Privacy-first local AI assistant.' };
 
   const [platform, setPlatform] = React.useState(() => {
     const raw = navigator?.platform || '';
-    if (raw.startsWith('Win')) return 'Windows';
-    if (raw.startsWith('Mac')) return 'macOS';
-    if (raw.includes('Linux')) return 'Linux';
-    return 'Desktop';
+    return normalizePlatform(raw);
   });
 
   React.useEffect(() => {
@@ -32,7 +39,7 @@ function TopBar() {
         const res = await window.aura?.env?.getPlatform?.();
         if (mounted && res) {
           const value = typeof res === 'string' ? res : res?.platform;
-          if (value) setPlatform(value);
+          if (value) setPlatform(normalizePlatform(value));
         }
       } catch {
         // keep local fallback

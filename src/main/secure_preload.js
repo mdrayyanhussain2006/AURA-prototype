@@ -19,7 +19,9 @@ const CH = Object.freeze({
   CONSENT_GET_ALL:            'aura:consent:getAll',
   CONSENT_UPDATE:             'aura:consent:update',
   DEMO_PING:                  'aura:demo:ping',
+  DEMO_GET_INFO:              'aura:demo:getInfo',
   INSIGHTS_GET_SUMMARY:       'aura:insights:getSummary',
+  INSIGHTS_GET_ACTIVITY:      'aura:insights:getActivity',
   MARKETPLACE_LIST_ITEMS:     'aura:marketplace:listItems',
   MARKETPLACE_GET_ITEM_DETAILS: 'aura:marketplace:getItemDetails',
   SECURITY_GET_STATUS:        'aura:security:getStatus',
@@ -135,11 +137,13 @@ const api = Object.freeze({
   }),
 
   demo: Object.freeze({
-    ping: () => safeInvoke(CH.DEMO_PING)
+    ping: () => safeInvoke(CH.DEMO_PING),
+    getInfo: () => safeInvoke(CH.DEMO_GET_INFO)
   }),
 
   insights: Object.freeze({
     getSummary: () => safeInvoke(CH.INSIGHTS_GET_SUMMARY),
+    getActivity: (p) => { assertObjectPayload(p, 'insights.getActivity'); return safeInvoke(CH.INSIGHTS_GET_ACTIVITY, p); },
     // Push listener: Main process pushes health audit data every 30s
     onHealthUpdate: (callback) => registerPushListener(CH.INSIGHTS_GET_SUMMARY, callback),
     removeHealthListener: () => removePushListener(CH.INSIGHTS_GET_SUMMARY)

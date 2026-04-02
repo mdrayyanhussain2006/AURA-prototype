@@ -98,6 +98,14 @@ function Settings() {
       toast.error('Export not available');
       return;
     }
+
+    const confirmed = window.confirm(
+      'This export contains decrypted vault data in plain JSON. Continue?'
+    );
+    if (!confirmed) {
+      return;
+    }
+
     setExporting(true);
     try {
       const res = await window.aura.vault.exportAll();

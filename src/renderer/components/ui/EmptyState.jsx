@@ -9,7 +9,7 @@ export default function EmptyState({
   className = ''
 }) {
   return (
-    <div className={`flex flex-col items-center justify-center py-16 px-6 text-center ${className}`}>
+    <div role="status" aria-live="polite" className={`flex flex-col items-center justify-center py-16 px-6 text-center ${className}`}>
       {icon ? (
         <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.06] text-slate-400 shadow-inner">
           {icon}
