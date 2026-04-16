@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useInsights } from './useInsights';
+import TrendChart from './TrendChart';
 import GlassCard from '../../renderer/components/ui/GlassCard';
 import SkeletonCard from '../../renderer/components/ui/SkeletonCard';
 import EmptyState from '../../renderer/components/ui/EmptyState';
@@ -120,6 +121,14 @@ function Insights() {
               <p className="text-sm text-cyan-300/80 mt-2">
                 {data.smartInsightText || `You have ${data.totalItems} items.`}
               </p>
+            </GlassCard>
+          </motion.div>
+
+          {/* Score Trend Chart */}
+          <motion.div variants={cardVariants}>
+            <GlassCard className="p-5">
+              <h3 className="text-slate-400 text-xs uppercase tracking-widest mb-4">Security Score Trend (7 Days)</h3>
+              <TrendChart days={7} />
             </GlassCard>
           </motion.div>
 

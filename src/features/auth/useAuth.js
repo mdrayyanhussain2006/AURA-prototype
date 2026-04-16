@@ -28,6 +28,35 @@ export function useAuth() {
     return res;
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    setError(null);
+    try {
+      // Initiate Google OAuth via main process (redirect-based)
+      const res = await authIpc.initiateGoogleAuth();
+      if (res.ok && res.session) {
+        setSession(res.session);
+      } else if (res.ok && !res.session) {
+        // OAuth window opened — session will arrive via push listener
+        // Set up a one-time listener for session changes
+        if (window.aura?.auth?.onSessionChanged) {
+          window.aura.auth.onSessionChanged((sessionData) => {
+            if (sessionData) {
+              setSession(sessionData);
+              setError(null);
+            }
+          });
+        }
+      } else {
+        setError(res.error ?? 'Google sign-in failed');
+      }
+      return res;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Google sign-in failed';
+      setError(message);
+      return { ok: false, error: message };
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     setError(null);
     const res = await authIpc.logout();
@@ -35,5 +64,5 @@ export function useAuth() {
     return res;
   }, []);
 
-  return { session, loading, error, refreshSession, login, logout };
+  return { session, loading, error, refreshSession, login, loginWithGoogle, logout };
 }

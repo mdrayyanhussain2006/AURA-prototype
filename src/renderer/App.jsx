@@ -1,5 +1,6 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
+import LoginGate from '../features/auth/LoginGate';
 import AppLayout from './components/layout/AppLayout';
 import DashboardPage from './pages/DashboardPage';
 import ArchivesPage from './pages/ArchivesPage';
@@ -13,23 +14,24 @@ import Demo from '../features/demo/Demo';
 
 function App() {
   return (
-    <AppLayout>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/vault" element={<Vault />} />
-        <Route path="/consent" element={<ConsentPage />} />
-        <Route path="/insights" element={<Insights />} />
-        <Route path="/marketplace" element={<Marketplace />} />
-        <Route path="/security" element={<Security />} />
-        <Route path="/demo" element={<Demo />} />
-        <Route path="/archives" element={<ArchivesPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </AppLayout>
+    <LoginGate>
+      <AppLayout>
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/vault" element={<Vault />} />
+          <Route path="/consent" element={<ConsentPage />} />
+          <Route path="/insights" element={<Insights />} />
+          <Route path="/marketplace" element={<Marketplace />} />
+          <Route path="/security" element={<Security />} />
+          <Route path="/demo" element={<Demo />} />
+          <Route path="/archives" element={<ArchivesPage />} />
+          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </AppLayout>
+    </LoginGate>
   );
 }
 
 export default App;
-

@@ -17,7 +17,7 @@ const cardVariants = {
 };
 
 function Marketplace() {
-  const { items, loading, error, refresh, getItemDetails } = useMarketplace();
+  const { items, loading, error, source, refresh, getItemDetails } = useMarketplace();
   const [details, setDetails] = React.useState(null);
   const [detailsError, setDetailsError] = React.useState(null);
   const [detailsLoadingId, setDetailsLoadingId] = React.useState('');
@@ -49,13 +49,24 @@ function Marketplace() {
               Discover local modules, templates, and workflow accelerators.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={refresh}
-            className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-xs font-medium text-white transition-all hover:bg-white/15 hover:scale-[1.02] active:scale-[0.98]"
-          >
-            Refresh
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            {source && (
+              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide border ${
+                source === 'firestore'
+                  ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'
+                  : 'border-amber-500/40 bg-amber-500/15 text-amber-300'
+              }`}>
+                {source === 'firestore' ? '☁ Cloud' : '⚡ Local'}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={refresh}
+              className="rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-xs font-medium text-white transition-all hover:bg-white/15 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
 
         {error && (

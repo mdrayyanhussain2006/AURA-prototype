@@ -19,11 +19,13 @@
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
     "electron-is-dev": "^3.0.1",
+    "firebase": "^12.12.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^0.577.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.0.0",
+    "recharts": "^3.8.1",
     "zod": "^4.3.6"
   },
   "devDependencies": {

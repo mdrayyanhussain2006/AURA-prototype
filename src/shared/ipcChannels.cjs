@@ -15,6 +15,11 @@ module.exports = Object.freeze({
   AUTH_GET_SESSION: 'aura:auth:getSession',
   AUTH_LOGIN: 'aura:auth:login',
   AUTH_LOGOUT: 'aura:auth:logout',
+  AUTH_STORE_TOKEN: 'aura:auth:storeToken',
+  AUTH_GET_TOKEN: 'aura:auth:getToken',
+  AUTH_CLEAR_TOKEN: 'aura:auth:clearToken',
+  AUTH_INITIATE_GOOGLE: 'aura:auth:initiateGoogleAuth',
+  AUTH_SESSION_CHANGED: 'aura:auth:sessionChanged',
 
   // Vault
   VAULT_LIST_ITEMS: 'aura:vault:listItems',
@@ -38,6 +43,7 @@ module.exports = Object.freeze({
   // Insights
   INSIGHTS_GET_SUMMARY: 'aura:insights:getSummary',
   INSIGHTS_GET_ACTIVITY: 'aura:insights:getActivity',
+  INSIGHTS_GET_SCORE_HISTORY: 'aura:insights:getScoreHistory',
 
   // Marketplace
   MARKETPLACE_LIST_ITEMS: 'aura:marketplace:listItems',
@@ -46,6 +52,7 @@ module.exports = Object.freeze({
   // Security
   SECURITY_GET_STATUS: 'aura:security:getStatus',
   SECURITY_GET_POLICIES: 'aura:security:getPolicies',
+  SECURITY_ENABLE_GUARD: 'aura:security:enableGuard',
 
   // Settings
   SETTINGS_GET: 'aura:settings:get',

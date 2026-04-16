@@ -39,9 +39,20 @@ export function useSecurity() {
     }
   }, []);
 
+  const fixGuard = useCallback(async (guardKey) => {
+    try {
+      const result = await securityIpc.enableGuard(guardKey);
+      await refresh();
+      return result;
+    } catch (err) {
+      return { ok: false, error: err instanceof Error ? err.message : 'Fix failed' };
+    }
+  }, [refresh]);
+
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  return { status, policies, loading, error, refresh };
+  return { status, policies, loading, error, refresh, fixGuard };
 }
+

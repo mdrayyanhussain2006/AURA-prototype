@@ -44,30 +44,37 @@ function createMainWindow(isDevHelper) {
 function startHealthAuditLoop() {
   // Run the first audit immediately once the window is ready
   if (mainWindow && !mainWindow.isDestroyed()) {
-    try {
-      const auditData = runHealthAudit();
-      mainWindow.webContents.send(Channels.INSIGHTS_GET_SUMMARY, auditData);
-      console.log(`[HealthLoop] Audit pushed — score: ${auditData.score}/${100} (${auditData.level})`);
-    } catch (err) {
-      console.error('[HealthLoop] Initial audit error:', err.message);
-    }
+    (async () => {
+      try {
+        const auditData = await runHealthAudit();
+        mainWindow.webContents.send(Channels.INSIGHTS_GET_SUMMARY, auditData);
+        console.log(`[HealthLoop] Audit pushed — score: ${auditData.score}/${100} (${auditData.level})`);
+        // Persist score for trend chart (WS-2)
+        try { const { appendScore } = require('./services/scoreHistory'); await appendScore(auditData); } catch {}
+      } catch (err) {
+        console.error('[HealthLoop] Initial audit error:', err.message);
+      }
+    })();
   }
 
   // Schedule recurring audits every 30 seconds
   healthAuditInterval = setInterval(() => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
-
-    try {
-      const auditData = runHealthAudit();
-      mainWindow.webContents.send(Channels.INSIGHTS_GET_SUMMARY, auditData);
-    } catch (err) {
-      console.error('[HealthLoop] Audit error:', err.message);
-    }
+    (async () => {
+      try {
+        const auditData = await runHealthAudit();
+        mainWindow.webContents.send(Channels.INSIGHTS_GET_SUMMARY, auditData);
+        try { const { appendScore } = require('./services/scoreHistory'); await appendScore(auditData); } catch {}
+      } catch (err) {
+        console.error('[HealthLoop] Audit error:', err.message);
+      }
+    })();
   }, 30_000);
 }
 
 const vaultIpc = require('./ipc/vault');
 const consentIpc = require('./ipc/consent');
+const { setMainWindowRef } = require('./ipc/auth');
 const { ipcMain } = require('electron');
 
 // 2. Wrap the startup logic in an async block to handle the dynamic import
@@ -91,6 +98,9 @@ app.whenReady().then(async () => {
   if (typeof consentIpc.registerHandlers === 'function') consentIpc.registerHandlers(ipcMain);
 
   createMainWindow(isDevHelper);
+
+  // Pass mainWindow ref to auth for Google OAuth modal
+  setMainWindowRef(mainWindow);
 
   // ── Start Autonomous Health Loop after window is ready ──
   mainWindow.webContents.once('did-finish-load', () => {

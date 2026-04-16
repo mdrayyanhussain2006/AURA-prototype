@@ -62,3 +62,16 @@ export async function getPolicies() {
     };
   }
 }
+
+export async function enableGuard(guardKey) {
+  const bridge = getSecurityBridge();
+  if (!bridge || typeof bridge.enableGuard !== 'function') {
+    return { ok: false, error: 'Security API not available' };
+  }
+  try {
+    const res = await bridge.enableGuard({ guard: guardKey });
+    return res || { ok: false, error: 'No response from enableGuard' };
+  } catch (err) {
+    return { ok: false, error: normalizeMessage(err?.message, 'Failed to enable guard') };
+  }
+}

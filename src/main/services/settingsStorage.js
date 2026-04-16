@@ -1,17 +1,10 @@
 const { app } = require('electron');
-const fs = require('node:fs');
+const fs = require('node:fs/promises');
 const path = require('node:path');
 
 function resolveBasePath() {
-  if (!app || typeof app.getPath !== 'function') {
-    return process.env.APPDATA || __dirname;
-  }
-
-  try {
-    return app.getPath('userData');
-  } catch {
-    return process.env.APPDATA || __dirname;
-  }
+  if (!app || typeof app.getPath !== 'function') return process.env.APPDATA || __dirname;
+  try { return app.getPath('userData'); } catch { return process.env.APPDATA || __dirname; }
 }
 
 const BASE_PATH = resolveBasePath();
@@ -21,92 +14,60 @@ const DEFAULT_SETTINGS = Object.freeze({
   theme: 'dark',
   reducedMotion: false,
   autoLockMinutes: 10,
-  consentDefaults: Object.freeze({
-    insights: false,
-    marketplace: false
-  }),
-  developerMode: false
+  consentDefaults: Object.freeze({ insights: false, marketplace: false }),
+  developerMode: false,
+  installedModules: Object.freeze([])
 });
 
 const ALLOWED_THEMES = new Set(['dark', 'light']);
 
-function asObject(value) {
-  return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
-}
+function asObject(v) { return v && typeof v === 'object' && !Array.isArray(v) ? v : {}; }
 
 function cloneDefaultSettings() {
   return {
-    theme: DEFAULT_SETTINGS.theme,
-    reducedMotion: DEFAULT_SETTINGS.reducedMotion,
+    theme: DEFAULT_SETTINGS.theme, reducedMotion: DEFAULT_SETTINGS.reducedMotion,
     autoLockMinutes: DEFAULT_SETTINGS.autoLockMinutes,
-    consentDefaults: {
-      insights: DEFAULT_SETTINGS.consentDefaults.insights,
-      marketplace: DEFAULT_SETTINGS.consentDefaults.marketplace
-    },
-    developerMode: DEFAULT_SETTINGS.developerMode
+    consentDefaults: { insights: DEFAULT_SETTINGS.consentDefaults.insights, marketplace: DEFAULT_SETTINGS.consentDefaults.marketplace },
+    developerMode: DEFAULT_SETTINGS.developerMode, installedModules: []
   };
 }
 
-function normalizeTheme(value, fallback) {
-  if (typeof value !== 'string') return fallback;
-  const normalized = value.trim().toLowerCase();
-  return ALLOWED_THEMES.has(normalized) ? normalized : fallback;
-}
-
-function normalizeBoolean(value, fallback) {
-  return typeof value === 'boolean' ? value : fallback;
-}
-
-function normalizeAutoLock(value, fallback) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return fallback;
-  const rounded = Math.round(parsed);
-  if (rounded < 1) return 1;
-  if (rounded > 240) return 240;
-  return rounded;
-}
+function normalizeTheme(v, fb) { if (typeof v !== 'string') return fb; const n = v.trim().toLowerCase(); return ALLOWED_THEMES.has(n) ? n : fb; }
+function normalizeBoolean(v, fb) { return typeof v === 'boolean' ? v : fb; }
+function normalizeAutoLock(v, fb) { const p = Number(v); if (!Number.isFinite(p)) return fb; const r = Math.round(p); return r < 1 ? 1 : r > 240 ? 240 : r; }
+function normalizeInstalledModules(v) { if (!Array.isArray(v)) return []; return v.filter(i => typeof i === 'string' && i.trim().length > 0); }
 
 function normalizeSettings(value) {
-  const defaults = cloneDefaultSettings();
+  const d = cloneDefaultSettings();
   const raw = asObject(value);
-  const rawConsentDefaults = asObject(raw.consentDefaults);
-
+  const rc = asObject(raw.consentDefaults);
   return {
-    theme: normalizeTheme(raw.theme, defaults.theme),
-    reducedMotion: normalizeBoolean(raw.reducedMotion, defaults.reducedMotion),
-    autoLockMinutes: normalizeAutoLock(raw.autoLockMinutes, defaults.autoLockMinutes),
-    consentDefaults: {
-      insights: normalizeBoolean(rawConsentDefaults.insights, defaults.consentDefaults.insights),
-      marketplace: normalizeBoolean(rawConsentDefaults.marketplace, defaults.consentDefaults.marketplace)
-    },
-    developerMode: normalizeBoolean(raw.developerMode, defaults.developerMode)
+    theme: normalizeTheme(raw.theme, d.theme),
+    reducedMotion: normalizeBoolean(raw.reducedMotion, d.reducedMotion),
+    autoLockMinutes: normalizeAutoLock(raw.autoLockMinutes, d.autoLockMinutes),
+    consentDefaults: { insights: normalizeBoolean(rc.insights, d.consentDefaults.insights), marketplace: normalizeBoolean(rc.marketplace, d.consentDefaults.marketplace) },
+    developerMode: normalizeBoolean(raw.developerMode, d.developerMode),
+    installedModules: normalizeInstalledModules(raw.installedModules)
   };
 }
 
-function readSettings() {
+async function readSettings() {
   try {
-    if (!fs.existsSync(SETTINGS_FILE_PATH)) {
-      return cloneDefaultSettings();
-    }
-
-    const raw = fs.readFileSync(SETTINGS_FILE_PATH, 'utf8');
-    if (!raw || !raw.trim()) {
-      return cloneDefaultSettings();
-    }
-
-    const parsed = JSON.parse(raw);
-    return normalizeSettings(parsed);
+    await fs.access(SETTINGS_FILE_PATH);
+    const raw = await fs.readFile(SETTINGS_FILE_PATH, 'utf8');
+    if (!raw || !raw.trim()) return cloneDefaultSettings();
+    return normalizeSettings(JSON.parse(raw));
   } catch (error) {
-    console.error('[settingsStorage] Failed to read settings:', error.message);
+    if (error.code !== 'ENOENT') console.error('[settingsStorage] Failed to read settings:', error.message);
     return cloneDefaultSettings();
   }
 }
 
-function writeSettings(settings) {
+async function writeSettings(settings) {
   try {
     const normalized = normalizeSettings(settings);
-    fs.mkdirSync(path.dirname(SETTINGS_FILE_PATH), { recursive: true });
-    fs.writeFileSync(SETTINGS_FILE_PATH, JSON.stringify(normalized, null, 2), 'utf8');
+    await fs.mkdir(path.dirname(SETTINGS_FILE_PATH), { recursive: true });
+    await fs.writeFile(SETTINGS_FILE_PATH, JSON.stringify(normalized, null, 2), 'utf8');
     return true;
   } catch (error) {
     console.error('[settingsStorage] Failed to write settings:', error.message);
@@ -114,11 +75,4 @@ function writeSettings(settings) {
   }
 }
 
-module.exports = {
-  SETTINGS_FILE_PATH,
-  DEFAULT_SETTINGS,
-  cloneDefaultSettings,
-  normalizeSettings,
-  readSettings,
-  writeSettings
-};
+module.exports = { SETTINGS_FILE_PATH, DEFAULT_SETTINGS, cloneDefaultSettings, normalizeSettings, readSettings, writeSettings };

@@ -7,7 +7,7 @@
  * is enforced even if the renderer-side redaction is bypassed.
  */
 
-const fs = require('node:fs');
+const fs = require('node:fs/promises');
 const path = require('node:path');
 
 let pipelinePatterns = null;
@@ -16,13 +16,12 @@ let pipelinePatterns = null;
  * Lazily loads redaction patterns from the pipeline template.
  * Cached after first load for performance.
  */
-function loadPatterns() {
+async function loadPatterns() {
   if (pipelinePatterns) return pipelinePatterns;
 
   try {
-    // Resolve from project root — works in both dev and production
     const templatePath = path.join(__dirname, '..', '..', 'renderer', 'redaction_pipeline_template.json');
-    const raw = fs.readFileSync(templatePath, 'utf8');
+    const raw = await fs.readFile(templatePath, 'utf8');
     const template = JSON.parse(raw);
     const detectStage = template.pipeline?.stages?.find((s) => s.name === 'detect_sensitive');
 
@@ -40,10 +39,6 @@ function loadPatterns() {
   return pipelinePatterns;
 }
 
-/**
- * Hardcoded fallback patterns in case the JSON template is unavailable.
- * These match the core PII types AURA commits to redacting.
- */
 function getFallbackPatterns() {
   return {
     EMAIL: '\\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}\\b',
@@ -54,40 +49,28 @@ function getFallbackPatterns() {
 
 /**
  * Scrubs PII from raw text using the redaction pipeline patterns.
- *
- * @param {*} text — Input text to redact. Non-strings are returned as-is.
- * @returns {{ redacted: string, redactionSummary: string[], safe: boolean }}
+ * @returns {Promise<{ redacted: string, redactionSummary: string[], safe: boolean }>}
  */
-function quickRedact(text) {
-  // Guard: non-string or empty input
-  if (text === null || text === undefined) {
-    return { redacted: '', redactionSummary: [], safe: true };
-  }
-
+async function quickRedact(text) {
+  if (text === null || text === undefined) return { redacted: '', redactionSummary: [], safe: true };
   const input = String(text);
-  if (!input.trim()) {
-    return { redacted: input, redactionSummary: [], safe: true };
-  }
+  if (!input.trim()) return { redacted: input, redactionSummary: [], safe: true };
 
-  const patterns = loadPatterns();
+  const patterns = await loadPatterns();
   let redacted = input;
   const summary = [];
 
   for (const [type, regexStr] of Object.entries(patterns)) {
     try {
-      // JS RegExp doesn't support inline (?i) — strip it and use 'gi' flags
       const cleanStr = regexStr.replace('(?i)', '');
       const regex = new RegExp(cleanStr, 'gi');
-
       if (regex.test(redacted)) {
         summary.push(type);
-        // Reset lastIndex since .test() advances it for global regexes
         regex.lastIndex = 0;
         redacted = redacted.replace(regex, `[REDACTED_${type}]`);
       }
     } catch (regexErr) {
       console.error(`[RedactionGate] Regex error for pattern "${type}":`, regexErr.message);
-      // Continue with other patterns — don't let one bad regex break the gate
     }
   }
 
