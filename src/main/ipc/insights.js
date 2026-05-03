@@ -1,5 +1,6 @@
 const { ipcMain } = require('electron');
 const Channels = require('../../shared/ipcChannels.cjs');
+const { generateInsights } = require('../services/insightEngine');
 const { readVaultItems } = require('../services/storage');
 const { getRecentActivity, appendActivityEvent } = require('../services/activityLog');
 const { readConsents, touchConsentUsageByApp } = require('../services/consentStorage');
@@ -55,7 +56,8 @@ function registerInsightsIpc() {
       const aiHighlights = buildLocalAiHighlights({ totalItems: items.length, categories, recentAdds, previousAdds });
       await touchConsentUsageByApp('Insights Engine', 'Insights');
       await appendActivityEvent({ feature: 'Insights', action: 'summary', target: 'vault', meta: { totalItems: items.length, topCategory: topCategory.name } });
-      return { ok: true, summary: { totalItems: items.length, categories, recentActivity, smartInsightText, aiHighlights, recentAdds, previousAdds, generatedAt: now.toISOString() } };
+      const insights = generateInsights(items);
+      return { ok: true, summary: { totalItems: items.length, categories, recentActivity, smartInsightText, aiHighlights, recentAdds, previousAdds, generatedAt: now.toISOString() }, data: insights };
     } catch (err) { console.error('[Insights] getSummary failed:', err?.message ?? err); return { ok: false, error: 'Insights failed' }; }
   });
 

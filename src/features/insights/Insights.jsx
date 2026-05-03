@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useInsights } from './useInsights';
 import TrendChart from './TrendChart';
@@ -41,11 +41,60 @@ function Insights() {
     loadInsights
   } = useInsights();
 
+  const [pulseData, setPulseData] = useState(null);
+  const [pulseError, setPulseError] = useState(null);
+
+  useEffect(() => {
+    if (window.aura?.insights?.getSummary) {
+      window.aura.insights.getSummary()
+        .then(res => {
+          if (res.ok && res.data) {
+            setPulseData(res.data);
+          } else {
+            setPulseError('Insights unavailable');
+          }
+        })
+        .catch(() => setPulseError('Insights unavailable'));
+    } else {
+      setPulseError('Insights unavailable');
+    }
+  }, []);
+
   const categoryEntries = data ? Object.entries(data.categories || {}).sort((a, b) => b[1] - a[1]) : [];
   const maxCategoryCount = categoryEntries.length > 0 ? categoryEntries[0][1] : 0;
 
   return (
     <div className="space-y-6 p-2">
+      {/* AURA Intelligence Pulse */}
+      <div className="animate-fade-in mb-6">
+        <GlassCard priority="primary" className="p-6">
+          <h2 className="text-xl font-bold text-white mb-4">AURA Intelligence Pulse</h2>
+          {pulseError ? (
+            <p className="text-amber-400 text-sm">{pulseError}</p>
+          ) : pulseData ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <p className="text-xs text-slate-400 uppercase">Total Items</p>
+                <p className="text-2xl font-bold text-white">{pulseData.totalItems}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 uppercase">Top Category</p>
+                <p className="text-2xl font-bold text-white capitalize">{pulseData.topCategory}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400 uppercase">Risk Level</p>
+                <p className="text-2xl font-bold text-emerald-400">{pulseData.riskLevel}</p>
+              </div>
+              <div className="col-span-2 md:col-span-4">
+                <p className="text-sm text-slate-200 mt-2">{pulseData.summaryText}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-slate-400 text-sm">Loading Pulse...</p>
+          )}
+        </GlassCard>
+      </div>
+
       {/* Header */}
       <GlassCard priority="primary" className="p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
