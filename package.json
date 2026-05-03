@@ -16,10 +16,35 @@
     "build:renderer": "vite build --config vite.renderer.config.mts",
     "build:main": "cross-env NODE_ENV=production node scripts/build-main.cjs",
     "lint": "eslint \"src/**/*.{js,jsx}\"",
-    "start": "cross-env NODE_ENV=production electron ."
+    "start": "cross-env NODE_ENV=production electron .",
+    "dist": "npm run build && electron-builder"
+  },
+  "build": {
+    "appId": "com.aura.desktopvault",
+    "productName": "AURA Vault",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "src/main/**/*",
+      "src/shared/**/*",
+      "package.json"
+    ],
+    "mac": {
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
+    "better-sqlite3": "^12.9.0",
     "dotenv": "^17.4.2",
     "electron-is-dev": "^3.0.1",
     "firebase": "^12.12.0",
@@ -37,6 +62,7 @@
     "concurrently": "^9.0.0",
     "cross-env": "^7.0.3",
     "electron": "^31.0.0",
+    "electron-builder": "^26.8.1",
     "electronmon": "^2.0.2",
     "eslint": "^9.12.0",
     "eslint-plugin-react-hooks": "^5.0.0",

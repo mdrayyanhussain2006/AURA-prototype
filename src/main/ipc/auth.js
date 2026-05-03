@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const Channels = require('../../shared/ipcChannels.cjs');
+const { writeWithIntegrity, readWithIntegrity } = require('../services/integrityGuard');
 require('dotenv').config();
 
 const AUTH_STORE_FILENAME = 'auth-store.json';
@@ -42,9 +43,7 @@ function hashPassphrase(passphrase, salt) {
 async function loadStoredAuth() {
   try {
     const p = getAuthStorePath();
-    await fs.access(p);
-    const raw = await fs.readFile(p, 'utf8');
-    const data = JSON.parse(raw);
+    const data = await readWithIntegrity(p, null);
     if (!data || typeof data.vaultHash !== 'string') return null;
     return { vaultHash: data.vaultHash, salt: typeof data.salt === 'string' ? data.salt : null };
   } catch (err) { console.warn('[Auth] loadStoredAuth failed:', err?.message ?? err); return null; }
@@ -53,9 +52,7 @@ async function loadStoredAuth() {
 async function saveStoredAuth(vaultHash, salt) {
   try {
     const p = getAuthStorePath();
-    await fs.mkdir(path.dirname(p), { recursive: true });
-    await fs.writeFile(p, JSON.stringify({ vaultHash, salt }), 'utf8');
-    return true;
+    return await writeWithIntegrity(p, { vaultHash, salt });
   } catch (err) { console.error('[Auth] saveStoredAuth failed:', err?.message ?? err); return false; }
 }
 
@@ -101,6 +98,10 @@ async function clearStoredToken() {
 let currentSession = null;
 let mainWindowRef = null;
 
+const failedAttempts = new Map();
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
+
 function setMainWindowRef(win) {
   mainWindowRef = win;
 }
@@ -116,32 +117,65 @@ function registerAuthIpc() {
     if (!u || u.length === 0) return { ok: false, error: 'Username is required' };
     if (!passphrase || typeof passphrase !== 'string') return { ok: false, error: 'Passphrase is required' };
 
+    const record = failedAttempts.get(u);
+    if (record) {
+      if (Date.now() < record.lockedUntil) {
+        const remainingMin = Math.ceil((record.lockedUntil - Date.now()) / 60000);
+        return { ok: false, error: `Too many failed attempts. Locked for ${remainingMin} minute(s).` };
+      }
+      if (Date.now() >= record.lockedUntil && record.count >= MAX_ATTEMPTS) {
+        failedAttempts.delete(u);
+      }
+    }
+
+    const recordFailure = () => {
+      const current = failedAttempts.get(u) || { count: 0, lockedUntil: 0 };
+      current.count += 1;
+      if (current.count >= MAX_ATTEMPTS) {
+        current.lockedUntil = Date.now() + LOCKOUT_DURATION_MS;
+      }
+      failedAttempts.set(u, current);
+    };
+
     try {
       const storedAuth = await loadStoredAuth();
 
       if (!storedAuth) {
         const salt = generateSalt();
         const hash = await hashPassphrase(passphrase, salt);
-        if (!hash) return { ok: false, error: 'Invalid passphrase' };
+        if (!hash) {
+          recordFailure();
+          return { ok: false, error: 'Invalid passphrase' };
+        }
         const saved = await saveStoredAuth(hash, salt);
         if (!saved) return { ok: false, error: 'Could not save vault credentials' };
+        failedAttempts.delete(u);
         currentSession = { username: u, createdAt: Date.now(), provider: 'local' };
         return { ok: true, session: currentSession };
       }
 
       if (!storedAuth.salt) {
         const legacyHash = await hashPassphrase(passphrase, 'aura-vault-v1');
-        if (legacyHash !== storedAuth.vaultHash) return { ok: false, error: 'Invalid passphrase' };
+        if (legacyHash !== storedAuth.vaultHash) {
+          recordFailure();
+          return { ok: false, error: 'Invalid passphrase' };
+        }
         const newSalt = generateSalt();
         const newHash = await hashPassphrase(passphrase, newSalt);
         await saveStoredAuth(newHash, newSalt);
         console.info('[Auth] Migrated from static salt to per-user salt');
+        failedAttempts.delete(u);
         currentSession = { username: u, createdAt: Date.now(), provider: 'local' };
         return { ok: true, session: currentSession };
       }
 
       const hash = await hashPassphrase(passphrase, storedAuth.salt);
-      if (hash !== storedAuth.vaultHash) return { ok: false, error: 'Invalid passphrase' };
+      if (hash !== storedAuth.vaultHash) {
+        recordFailure();
+        return { ok: false, error: 'Invalid passphrase' };
+      }
+      
+      failedAttempts.delete(u);
       currentSession = { username: u, createdAt: Date.now(), provider: 'local' };
       return { ok: true, session: currentSession };
     } catch (err) {
