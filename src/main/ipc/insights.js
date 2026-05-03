@@ -56,7 +56,7 @@ function registerInsightsIpc() {
       await touchConsentUsageByApp('Insights Engine', 'Insights');
       await appendActivityEvent({ feature: 'Insights', action: 'summary', target: 'vault', meta: { totalItems: items.length, topCategory: topCategory.name } });
       return { ok: true, summary: { totalItems: items.length, categories, recentActivity, smartInsightText, aiHighlights, recentAdds, previousAdds, generatedAt: now.toISOString() } };
-    } catch { return { ok: false, error: 'Insights failed' }; }
+    } catch (err) { console.error('[Insights] getSummary failed:', err?.message ?? err); return { ok: false, error: 'Insights failed' }; }
   });
 
   ipcMain.handle(Channels.INSIGHTS_GET_ACTIVITY, async (_event, { limit }) => {

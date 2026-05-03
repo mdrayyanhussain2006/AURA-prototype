@@ -12,7 +12,7 @@ async function readActivityLog() {
     if (!raw || !raw.trim()) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
-  } catch { return []; }
+  } catch (err) { console.warn('[activityLog] Read failed:', err?.message ?? err); return []; }
 }
 
 async function writeActivityLog(entries) {
@@ -20,7 +20,7 @@ async function writeActivityLog(entries) {
     await fs.mkdir(path.dirname(ACTIVITY_LOG_PATH), { recursive: true });
     await fs.writeFile(ACTIVITY_LOG_PATH, JSON.stringify(entries, null, 2), 'utf8');
     return true;
-  } catch { return false; }
+  } catch (err) { console.error('[activityLog] Write failed:', err?.message ?? err); return false; }
 }
 
 async function appendActivityEvent(event) {

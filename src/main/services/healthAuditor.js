@@ -24,7 +24,7 @@ const COMMON_PASSWORDS = new Set([
 function tryDecrypt(base64Text) {
   if (!base64Text || typeof base64Text !== 'string') return null;
   try { return safeStorage.decryptString(Buffer.from(base64Text, 'base64')); }
-  catch { return null; }
+  catch (err) { console.warn('[healthAuditor] Decrypt failed:', err?.message ?? err); return null; }
 }
 
 async function detectPII(text) {
@@ -35,7 +35,7 @@ async function detectPII(text) {
     try {
       const regex = new RegExp(regexStr.replace('(?i)', ''), 'gi');
       if (regex.test(text)) detected.push(type);
-    } catch { /* skip broken patterns */ }
+    } catch (err) { console.warn('[healthAuditor] PII regex error for', type, ':', err?.message ?? err); }
   }
   return detected;
 }

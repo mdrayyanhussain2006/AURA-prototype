@@ -29,7 +29,8 @@ export function useMarketplace() {
         setLoading(false);
         return { ok: true, items: cloudRes.items, source: 'firestore' };
       }
-    } catch {
+    } catch (err) {
+      console.warn('[useMarketplace] Firestore fetch failed:', err?.message ?? err);
       // Firestore failed — fall through to IPC
     }
 
@@ -67,7 +68,7 @@ export function useMarketplace() {
     try {
       const cloudRes = await firestoreService.fetchModuleById(id);
       if (cloudRes.ok && cloudRes.item) return cloudRes;
-    } catch { /* fallback */ }
+    } catch (err) { console.warn('[useMarketplace] Firestore detail fallback:', err?.message ?? err); /* fallback */ }
 
     return marketplaceIpc.getItemDetails(id);
   }, []);

@@ -50,12 +50,12 @@ function buildPoliciesPayload() {
 function registerSecurityIpc() {
   ipcMain.handle(Channels.SECURITY_GET_STATUS, async () => {
     try { return { ok: true, status: buildStatusPayload() }; }
-    catch { return { ok: false, error: 'Failed to load security status' }; }
+    catch (err) { console.error('[Security] getStatus failed:', err?.message ?? err); return { ok: false, error: 'Failed to load security status' }; }
   });
 
   ipcMain.handle(Channels.SECURITY_GET_POLICIES, async () => {
     try { return { ok: true, policies: buildPoliciesPayload() }; }
-    catch { return { ok: false, error: 'Failed to load security policies' }; }
+    catch (err) { console.error('[Security] getPolicies failed:', err?.message ?? err); return { ok: false, error: 'Failed to load security policies' }; }
   });
 
   ipcMain.handle(Channels.SECURITY_ENABLE_GUARD, async (_event, rawPayload) => {

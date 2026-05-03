@@ -15,7 +15,7 @@ function getTodayString() { return new Date().toISOString().slice(0, 10); }
 
 async function readHistory() {
   try { await fs.access(HISTORY_FILE_PATH); const raw = await fs.readFile(HISTORY_FILE_PATH, 'utf8'); if (!raw || !raw.trim()) return []; const p = JSON.parse(raw); return Array.isArray(p) ? p : []; }
-  catch { return []; }
+  catch (err) { console.warn('[scoreHistory] Read failed:', err?.message ?? err); return []; }
 }
 
 async function writeHistory(entries) {

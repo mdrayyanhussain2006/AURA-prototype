@@ -58,14 +58,14 @@ function mapLegacyConsentStoreToList(legacyStore) {
 }
 
 async function readConsentsFromPath(filePath) {
-  try { await fs.access(filePath); } catch { return null; }
+  try { await fs.access(filePath); } catch (err) { console.warn('[consentStorage] File not found:', filePath); return null; }
   try {
     const raw = await fs.readFile(filePath, 'utf-8');
     if (!raw || !raw.trim()) return [];
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) return parsed.map((e, i) => normalizeConsent(e, i));
     return mapLegacyConsentStoreToList(parsed);
-  } catch { return null; }
+  } catch (err) { console.warn('[consentStorage] Parse failed for', filePath, ':', err?.message ?? err); return null; }
 }
 
 let ioMutex = Promise.resolve();
@@ -126,7 +126,7 @@ async function _writeConsents(data) {
     await fs.mkdir(path.dirname(CONSENTS_FILE_PATH), { recursive: true });
     await fs.writeFile(CONSENTS_FILE_PATH, JSON.stringify(nd, null, 2), 'utf-8');
     return true;
-  } catch { return false; }
+  } catch (err) { console.error('[consentStorage] Write failed:', err?.message ?? err); return false; }
 }
 
 function writeConsents(data) {

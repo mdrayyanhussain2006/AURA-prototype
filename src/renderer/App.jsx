@@ -4,7 +4,7 @@ import LoginGate from '../features/auth/LoginGate';
 import AppLayout from './components/layout/AppLayout';
 import DashboardPage from './pages/DashboardPage';
 import ArchivesPage from './pages/ArchivesPage';
-import SettingsPage from './pages/SettingsPage';
+import Settings from '../features/settings/Settings';
 import Vault from '../features/vault/Vault';
 import ConsentPage from '../features/consent/ConsentPage';
 import Insights from '../features/insights/Insights';
@@ -26,7 +26,7 @@ function App() {
           <Route path="/security" element={<Security />} />
           <Route path="/demo" element={<Demo />} />
           <Route path="/archives" element={<ArchivesPage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AppLayout>

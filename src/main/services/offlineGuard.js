@@ -31,7 +31,8 @@ function ensureOfflineCapable() {
       safeStorage && typeof safeStorage.isEncryptionAvailable === 'function'
         ? safeStorage.isEncryptionAvailable()
         : false;
-  } catch {
+  } catch (err) {
+    console.warn('[offlineGuard] safeStorage check failed:', err?.message ?? err);
     checks.safeStorageAvailable = false;
   }
 
@@ -43,7 +44,8 @@ function ensureOfflineCapable() {
     fs.writeFileSync(testFile, 'ok', 'utf8');
     fs.unlinkSync(testFile);
     checks.vaultPathWritable = true;
-  } catch {
+  } catch (err) {
+    console.warn('[offlineGuard] Vault path write check failed:', err?.message ?? err);
     checks.vaultPathWritable = false;
   }
 
@@ -53,7 +55,8 @@ function ensureOfflineCapable() {
     const raw = fs.readFileSync(templatePath, 'utf8');
     const parsed = JSON.parse(raw);
     checks.redactionPipelineLoaded = Boolean(parsed.pipeline?.stages?.length > 0);
-  } catch {
+  } catch (err) {
+    console.warn('[offlineGuard] Redaction pipeline check failed:', err?.message ?? err);
     checks.redactionPipelineLoaded = false;
   }
 
@@ -62,7 +65,8 @@ function ensureOfflineCapable() {
     const crypto = require('node:crypto');
     const buf = crypto.randomBytes(16);
     checks.cryptoModuleAvailable = buf.length === 16;
-  } catch {
+  } catch (err) {
+    console.warn('[offlineGuard] Crypto module check failed:', err?.message ?? err);
     checks.cryptoModuleAvailable = false;
   }
 

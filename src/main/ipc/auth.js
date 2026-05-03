@@ -3,6 +3,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const Channels = require('../../shared/ipcChannels.cjs');
+require('dotenv').config();
 
 const AUTH_STORE_FILENAME = 'auth-store.json';
 const TOKEN_STORE_FILENAME = 'auth-token.enc';
@@ -11,10 +12,10 @@ const SCRYPT_R = 8;
 const SCRYPT_P = 1;
 const KEY_LEN = 64;
 
-// Google OAuth config (matches Firebase project)
-const GOOGLE_CLIENT_ID = '924019989743';
+// Google OAuth config (loaded from .env)
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_REDIRECT_URI = 'https://aura-vault-49d27.firebaseapp.com/__/auth/handler';
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || '';
 
 function getAuthStorePath() {
   return path.join(app.getPath('userData'), AUTH_STORE_FILENAME);
@@ -46,7 +47,7 @@ async function loadStoredAuth() {
     const data = JSON.parse(raw);
     if (!data || typeof data.vaultHash !== 'string') return null;
     return { vaultHash: data.vaultHash, salt: typeof data.salt === 'string' ? data.salt : null };
-  } catch { return null; }
+  } catch (err) { console.warn('[Auth] loadStoredAuth failed:', err?.message ?? err); return null; }
 }
 
 async function saveStoredAuth(vaultHash, salt) {
@@ -55,7 +56,7 @@ async function saveStoredAuth(vaultHash, salt) {
     await fs.mkdir(path.dirname(p), { recursive: true });
     await fs.writeFile(p, JSON.stringify({ vaultHash, salt }), 'utf8');
     return true;
-  } catch { return false; }
+  } catch (err) { console.error('[Auth] saveStoredAuth failed:', err?.message ?? err); return false; }
 }
 
 // ── Token Storage (encrypted via safeStorage) ──
@@ -84,7 +85,7 @@ async function getStoredToken() {
     const buffer = Buffer.from(encrypted, 'base64');
     const json = safeStorage.decryptString(buffer);
     return JSON.parse(json);
-  } catch { return null; }
+  } catch (err) { console.warn('[Auth] getStoredToken failed:', err?.message ?? err); return null; }
 }
 
 async function clearStoredToken() {
@@ -92,7 +93,7 @@ async function clearStoredToken() {
     const p = getTokenStorePath();
     await fs.unlink(p);
     return true;
-  } catch { return true; } // already gone is fine
+  } catch (err) { console.warn('[Auth] clearStoredToken:', err?.message ?? err); return true; } // already gone is fine
 }
 
 // ── Session State ──
@@ -176,7 +177,7 @@ function registerAuthIpc() {
   ipcMain.handle(Channels.AUTH_INITIATE_GOOGLE, async () => {
     try {
       const authUrl = new URL(GOOGLE_AUTH_URL);
-      authUrl.searchParams.set('client_id', `${GOOGLE_CLIENT_ID}.apps.googleusercontent.com`);
+      authUrl.searchParams.set('client_id', GOOGLE_CLIENT_ID);
       authUrl.searchParams.set('redirect_uri', GOOGLE_REDIRECT_URI);
       authUrl.searchParams.set('response_type', 'token');
       authUrl.searchParams.set('scope', 'openid email profile');
@@ -222,10 +223,14 @@ function registerAuthIpc() {
 
 function handleAuthRedirect(url, authWindow, resolve) {
   try {
+    // Validate that the redirect comes from our expected Firebase handler
+    const parsed = new URL(url);
+    const expectedOrigin = new URL(GOOGLE_REDIRECT_URI).origin;
+    if (parsed.origin !== expectedOrigin) return;
+
     // Firebase Auth handler redirects with token in fragment
     if (!url.includes('access_token') && !url.includes('id_token')) return;
 
-    const parsed = new URL(url);
     // Tokens are in the fragment (hash), not query params
     const fragment = parsed.hash.substring(1); // Remove leading #
     const params = new URLSearchParams(fragment);

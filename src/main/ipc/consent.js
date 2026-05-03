@@ -41,7 +41,7 @@ function findConsentIndex(consents, payload) {
 function registerConsentIpc() {
   ipcMain.handle(Channels.CONSENT_GET_ALL, async () => {
     try { return { ok: true, consents: await readConsents() }; }
-    catch { return { ok: false, error: 'Failed to load consent records' }; }
+    catch (err) { console.error('[Consent] getAll failed:', err?.message ?? err); return { ok: false, error: 'Failed to load consent records' }; }
   });
 
   ipcMain.handle(Channels.CONSENT_UPDATE, async (_event, rawPayload) => {
@@ -57,7 +57,7 @@ function registerConsentIpc() {
       const saved = await writeConsents(consents);
       if (!saved) return { ok: false, error: 'Failed to persist consent record' };
       return { ok: true, consent: newConsent, consents };
-    } catch { return { ok: false, error: 'Failed to update consent record' }; }
+    } catch (err) { console.error('[Consent] update failed:', err?.message ?? err); return { ok: false, error: 'Failed to update consent record' }; }
   });
 }
 

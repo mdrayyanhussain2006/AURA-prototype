@@ -3,20 +3,19 @@ const path = require('node:path');
 const { isDev, defaultBrowserWindowOptions } = require('./security');
 const { registerIpcHandlers } = require('./ipc');
 const { ensureOfflineCapable } = require('./services/offlineGuard');
-const { runHealthAudit } = require('./services/healthAuditor');
-const Channels = require('../shared/ipcChannels.cjs');
+const { setWindow, triggerHealthAudit } = require('./services/auditBridge');
 
 let mainWindow;
-let healthAuditInterval = null;
 
-// 1. Updated function to accept the helper as an argument
 function createMainWindow(isDevHelper) {
   mainWindow = new BrowserWindow(defaultBrowserWindowOptions);
 
   const rendererDevServerUrl = 'http://localhost:5173';
 
-  // Check both the local security setting and the external helper
-  if (isDev || isDevHelper) {
+  // Use dev server if isDev is true, or if electron-is-dev is true AND we're not explicitly forcing production
+  const shouldLoadDevServer = isDev || (isDevHelper && process.env.NODE_ENV !== 'production');
+  
+  if (shouldLoadDevServer) {
     mainWindow.loadURL(rendererDevServerUrl);
   } else {
     const indexHtmlPath = path.join(app.getAppPath(), 'dist', 'renderer', 'index.html');
@@ -37,47 +36,12 @@ function createMainWindow(isDevHelper) {
   });
 }
 
-/**
- * Starts the Autonomous Health Loop.
- * Pushes security audit results to the renderer every 30 seconds.
- */
-function startHealthAuditLoop() {
-  // Run the first audit immediately once the window is ready
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    (async () => {
-      try {
-        const auditData = await runHealthAudit();
-        mainWindow.webContents.send(Channels.INSIGHTS_GET_SUMMARY, auditData);
-        console.log(`[HealthLoop] Audit pushed — score: ${auditData.score}/${100} (${auditData.level})`);
-        // Persist score for trend chart (WS-2)
-        try { const { appendScore } = require('./services/scoreHistory'); await appendScore(auditData); } catch {}
-      } catch (err) {
-        console.error('[HealthLoop] Initial audit error:', err.message);
-      }
-    })();
-  }
-
-  // Schedule recurring audits every 30 seconds
-  healthAuditInterval = setInterval(() => {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    (async () => {
-      try {
-        const auditData = await runHealthAudit();
-        mainWindow.webContents.send(Channels.INSIGHTS_GET_SUMMARY, auditData);
-        try { const { appendScore } = require('./services/scoreHistory'); await appendScore(auditData); } catch {}
-      } catch (err) {
-        console.error('[HealthLoop] Audit error:', err.message);
-      }
-    })();
-  }, 30_000);
-}
-
 const vaultIpc = require('./ipc/vault');
 const consentIpc = require('./ipc/consent');
 const { setMainWindowRef } = require('./ipc/auth');
 const { ipcMain } = require('electron');
 
-// 2. Wrap the startup logic in an async block to handle the dynamic import
+// Wrap the startup logic in an async block to handle the dynamic import
 app.whenReady().then(async () => {
   // ── Offline-First Verification ──
   const offlineStatus = ensureOfflineCapable();
@@ -102,9 +66,12 @@ app.whenReady().then(async () => {
   // Pass mainWindow ref to auth for Google OAuth modal
   setMainWindowRef(mainWindow);
 
-  // ── Start Autonomous Health Loop after window is ready ──
+  // Pass mainWindow ref to audit bridge for event-driven health pushes
+  setWindow(mainWindow);
+
+  // ── Run initial health audit once window is ready ──
   mainWindow.webContents.once('did-finish-load', () => {
-    startHealthAuditLoop();
+    triggerHealthAudit();
   });
 
   app.on('activate', () => {
@@ -115,12 +82,6 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', () => {
-  // Clear the health audit interval to prevent orphaned timers
-  if (healthAuditInterval) {
-    clearInterval(healthAuditInterval);
-    healthAuditInterval = null;
-  }
-
   if (process.platform !== 'darwin') {
     app.quit();
   }

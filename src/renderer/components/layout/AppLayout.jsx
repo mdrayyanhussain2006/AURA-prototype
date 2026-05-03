@@ -20,7 +20,8 @@ function AppLayout({ children }) {
             setAutoLockMinutes(mins);
           }
         }
-      } catch {
+      } catch (err) {
+        console.warn('[AppLayout] Settings load failed:', err?.message ?? err);
         // keep default
       }
     })();

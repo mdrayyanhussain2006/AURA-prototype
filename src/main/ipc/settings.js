@@ -15,7 +15,7 @@ function mergeSettings(current, update) {
 function registerSettingsIpc() {
   ipcMain.handle(Channels.SETTINGS_GET, async () => {
     try { return { ok: true, settings: await readSettings() }; }
-    catch { return { ok: false, error: 'Failed to load settings' }; }
+    catch (err) { console.error('[Settings] get failed:', err?.message ?? err); return { ok: false, error: 'Failed to load settings' }; }
   });
 
   ipcMain.handle(Channels.SETTINGS_UPDATE, async (_event, rawPayload) => {
@@ -27,7 +27,7 @@ function registerSettingsIpc() {
       const saved = await writeSettings(merged);
       if (!saved) return { ok: false, error: 'Failed to persist settings' };
       return { ok: true, settings: await readSettings() };
-    } catch { return { ok: false, error: 'Failed to update settings' }; }
+    } catch (err) { console.error('[Settings] update failed:', err?.message ?? err); return { ok: false, error: 'Failed to update settings' }; }
   });
 
   ipcMain.handle(Channels.SETTINGS_RESET, async () => {
@@ -35,7 +35,7 @@ function registerSettingsIpc() {
       const saved = await writeSettings(cloneDefaultSettings());
       if (!saved) return { ok: false, error: 'Failed to reset settings' };
       return { ok: true, settings: await readSettings() };
-    } catch { return { ok: false, error: 'Failed to reset settings' }; }
+    } catch (err) { console.error('[Settings] reset failed:', err?.message ?? err); return { ok: false, error: 'Failed to reset settings' }; }
   });
 }
 

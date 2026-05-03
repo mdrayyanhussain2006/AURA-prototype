@@ -17,7 +17,8 @@ export function formatVaultDate(isoString) {
   try {
     const d = new Date(isoString);
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-  } catch {
+  } catch (err) {
+    console.warn('[placeholderData] Date format failed:', err?.message ?? err);
     return '—';
   }
 }

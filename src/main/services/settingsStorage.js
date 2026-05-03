@@ -4,7 +4,7 @@ const path = require('node:path');
 
 function resolveBasePath() {
   if (!app || typeof app.getPath !== 'function') return process.env.APPDATA || __dirname;
-  try { return app.getPath('userData'); } catch { return process.env.APPDATA || __dirname; }
+  try { return app.getPath('userData'); } catch (err) { console.warn('[settingsStorage] getPath failed:', err?.message ?? err); return process.env.APPDATA || __dirname; }
 }
 
 const BASE_PATH = resolveBasePath();

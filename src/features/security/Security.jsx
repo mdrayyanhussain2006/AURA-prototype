@@ -89,7 +89,7 @@ function Security() {
         if (result.restartRequired) toast.info(`${humanizeKey(guardKey)}: ${result.message || 'Requires app restart'}`);
         else toast.success(`${humanizeKey(guardKey)} has been enabled successfully.`);
       } else toast.error(result?.error || `Failed to fix ${humanizeKey(guardKey)}`);
-    } catch { toast.error(`Failed to fix ${humanizeKey(guardKey)}`); }
+    } catch (err) { console.error('[Security] enableGuard failed:', err?.message ?? err); toast.error(`Failed to fix ${humanizeKey(guardKey)}`); }
     finally { setFixingGuard(null); }
   };
 

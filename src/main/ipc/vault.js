@@ -5,6 +5,7 @@ const { readVaultItems, writeVaultItems } = require('../services/storage');
 const { appendActivityEvent } = require('../services/activityLog');
 const { quickRedact } = require('../services/redactionGate');
 const { VaultSaveItemSchema, VaultGetItemSchema, VaultDeleteItemSchema, validatePayload } = require('./schemas');
+const { triggerHealthAudit } = require('../services/auditBridge');
 
 function encrypt(text) {
   if (!text) return '';
@@ -73,8 +74,9 @@ function registerVaultIpc() {
       const writeOk = await writeVaultItems(items);
       if (!writeOk) return { ok: false, error: 'Failed to persist vault item' };
       await appendActivityEvent({ feature: 'Vault', action: index > -1 ? 'update_item' : 'create_item', target: 'vault_item', meta: { id: encryptedItem.id, type: encryptedItem.type } });
+      triggerHealthAudit();
       return { ok: true, id: encryptedItem.id };
-    } catch { return { ok: false, error: 'Encryption failed: Could not secure data' }; }
+    } catch (err) { console.error('[Vault] Save failed:', err?.message ?? err); return { ok: false, error: 'Encryption failed: Could not secure data' }; }
   });
 
   // --- VAULT_GET_ITEM ---
@@ -90,7 +92,7 @@ function registerVaultIpc() {
       if (!item) return { ok: false, error: 'Item not found' };
       await appendActivityEvent({ feature: 'Vault', action: 'read_item', target: 'vault_item', meta: { id: item.id } });
       return { ok: true, item: { id: item.id, title: decrypt(item.encryptedTitle), content: decrypt(item.encryptedContent), updatedAt: item.updatedAt } };
-    } catch { return { ok: false, error: 'Decryption failed' }; }
+    } catch (err) { console.error('[Vault] Get item failed:', err?.message ?? err); return { ok: false, error: 'Decryption failed' }; }
   });
 
   // --- VAULT_DELETE_ITEM ---
@@ -108,8 +110,9 @@ function registerVaultIpc() {
       const writeOk = await writeVaultItems(items);
       if (!writeOk) return { ok: false, error: 'Failed to persist deletion' };
       await appendActivityEvent({ feature: 'Vault', action: 'delete_item', target: 'vault_item', meta: { id } });
+      triggerHealthAudit();
       return { ok: true, id };
-    } catch { return { ok: false, error: 'Failed to delete item' }; }
+    } catch (err) { console.error('[Vault] Delete failed:', err?.message ?? err); return { ok: false, error: 'Failed to delete item' }; }
   });
 
   // --- VAULT_EXPORT_ALL ---

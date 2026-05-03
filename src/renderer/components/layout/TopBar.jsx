@@ -41,7 +41,8 @@ function TopBar() {
           const value = typeof res === 'string' ? res : res?.platform;
           if (value) setPlatform(normalizePlatform(value));
         }
-      } catch {
+      } catch (err) {
+        console.warn('[TopBar] getPlatform failed:', err?.message ?? err);
         // keep local fallback
       }
     })();

@@ -65,9 +65,7 @@ async function writeWithIntegrity(filePath, data) {
 async function readWithIntegrity(filePath, fallback) {
   try {
     await fs.access(filePath);
-  } catch {
-    return fallback;
-  }
+  } catch (err) { console.warn('[integrityGuard] File not found:', filePath); return fallback; }
 
   try {
     const raw = await fs.readFile(filePath, 'utf8');
@@ -100,9 +98,7 @@ async function readWithIntegrity(filePath, fallback) {
 async function verifyIntegrity(filePath) {
   try {
     await fs.access(filePath);
-  } catch {
-    return { valid: true, reason: 'File does not exist' };
-  }
+  } catch (err) { console.warn('[integrityGuard] File access check:', filePath); return { valid: true, reason: 'File does not exist' }; }
 
   try {
     const raw = await fs.readFile(filePath, 'utf8');

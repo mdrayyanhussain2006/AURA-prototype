@@ -83,7 +83,8 @@ function registerMarketplaceIpc() {
   ipcMain.handle(Channels.MARKETPLACE_LIST_ITEMS, async () => {
     try {
       return { ok: true, items: listMarketplaceItems() };
-    } catch {
+    } catch (err) {
+      console.error('[Marketplace] listItems failed:', err?.message ?? err);
       return { ok: false, error: 'Failed to list marketplace items' };
     }
   });
@@ -105,7 +106,8 @@ function registerMarketplaceIpc() {
       }
 
       return { ok: true, item };
-    } catch {
+    } catch (err) {
+      console.error('[Marketplace] getItemDetails failed:', err?.message ?? err);
       return { ok: false, error: 'Failed to get marketplace item details' };
     }
   });

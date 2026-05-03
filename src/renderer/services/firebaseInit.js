@@ -11,13 +11,13 @@ import { getFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 
 const firebaseConfig = Object.freeze({
-  apiKey: 'AIzaSyB2k4jxdhLhL5H9HceuuiDuGsbqu6DVADM',
-  authDomain: 'aura-vault-49d27.firebaseapp.com',
-  projectId: 'aura-vault-49d27',
-  storageBucket: 'aura-vault-49d27.firebasestorage.app',
-  messagingSenderId: '924019989743',
-  appId: '1:924019989743:web:f7b377f5a2f1539ac04f1a',
-  measurementId: 'G-SFSQ9TQS39'
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 });
 
 let _app = null;

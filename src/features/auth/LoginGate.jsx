@@ -57,7 +57,7 @@ export default function LoginGate({ children }) {
     setGoogleLoading(true);
     try {
       await loginWithGoogle();
-    } catch { /* error set by hook */ }
+    } catch (err) { console.warn('[LoginGate] Google auth error:', err?.message ?? err); /* error set by hook */ }
     setGoogleLoading(false);
   };
 

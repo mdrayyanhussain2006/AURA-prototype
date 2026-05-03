@@ -10,7 +10,7 @@ const SEVERITY_CONFIG = {
 
 const MAX_ENTRIES = 50;
 
-function formatTime(iso) { try { return new Date(iso).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }); } catch { return '--:--:--'; } }
+function formatTime(iso) { try { return new Date(iso).toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' }); } catch (err) { console.warn('[LiveAuditFeed] formatTime failed:', err?.message ?? err); return '--:--:--'; } }
 
 function buildLogEntries(healthData) {
   if (!healthData) return [];

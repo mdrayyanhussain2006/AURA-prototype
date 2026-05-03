@@ -78,7 +78,8 @@ function DashboardPage() {
           }
           setVaultStats({ items: res.items, categories: cats });
         }
-      } catch {
+      } catch (err) {
+        console.warn('[Dashboard] Vault stats fetch failed:', err?.message ?? err);
         // keep defaults
       }
     })();
