@@ -17,7 +17,7 @@
     "build:main": "cross-env NODE_ENV=production node scripts/build-main.cjs",
     "lint": "eslint \"src/**/*.{js,jsx}\"",
     "start": "cross-env NODE_ENV=production electron .",
-    "dist": "npm run build && electron-builder"
+    "dist": "npm run build && electron-builder --win"
   },
   "build": {
     "appId": "com.aura.desktopvault",
@@ -31,9 +31,6 @@
       "src/shared/**/*",
       "package.json"
     ],
-    "mac": {
-      "target": "dmg"
-    },
     "win": {
       "target": "nsis"
     },
