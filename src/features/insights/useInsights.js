@@ -10,7 +10,7 @@ async function hasInsightsConsent() {
   if (!res.ok) return { allowed: false, consents: [] };
 
   const consents = Array.isArray(res.consents) ? res.consents : [];
-  const allowed = consents.some((consent) => consent.app === INSIGHTS_APP_NAME && consent.granted);
+  const allowed = consents.some((consent) => consent.app === INSIGHTS_APP_NAME && consent.granted === true);
   return { allowed, consents };
 }
 

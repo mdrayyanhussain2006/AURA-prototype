@@ -51,7 +51,9 @@ function mapLegacyConsentStoreToList(legacyStore) {
   if (!isObject(legacyStore) || !isObject(legacyStore.consents)) return [];
   return Object.keys(legacyStore.consents).map((scope, index) => {
     const granted = Boolean(legacyStore.consents[scope]);
-    return normalizeConsent({ id: `consent_${scope}`, app: scope.replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()), purpose: `Permission scope: ${scope}`, granted, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), revokedAt: granted ? null : new Date().toISOString() }, index);
+    let appName = scope.replace(/[_-]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    if (appName === 'Insights') appName = 'Insights Engine';
+    return normalizeConsent({ id: `consent_${scope}`, app: appName, purpose: `Permission scope: ${scope}`, granted, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), revokedAt: granted ? null : new Date().toISOString() }, index);
   });
 }
 
@@ -66,15 +68,29 @@ async function readConsentsFromPath(filePath) {
   } catch { return null; }
 }
 
-async function readConsents() {
+let ioMutex = Promise.resolve();
+function withMutex(fn) {
+  return new Promise((resolve, reject) => {
+    ioMutex = ioMutex.then(async () => {
+      try { resolve(await fn()); }
+      catch (e) { reject(e); }
+    });
+  });
+}
+
+async function _readConsents() {
   const current = await readConsentsFromPath(CONSENTS_FILE_PATH);
-  if (Array.isArray(current)) return applyAutoExpiry(current);
+  if (Array.isArray(current)) return _applyAutoExpiry(current);
   const legacy = await readConsentsFromPath(LEGACY_CONSENTS_FILE_PATH);
-  if (Array.isArray(legacy)) { const w = await applyAutoExpiry(legacy); await writeConsents(w); return w; }
+  if (Array.isArray(legacy)) { const w = await _applyAutoExpiry(legacy); await _writeConsents(w); return w; }
   return [];
 }
 
-async function applyAutoExpiry(consents) {
+function readConsents() {
+  return withMutex(_readConsents);
+}
+
+async function _applyAutoExpiry(consents) {
   const now = new Date();
   let changed = false;
   const next = consents.map((c) => {
@@ -86,27 +102,35 @@ async function applyAutoExpiry(consents) {
     changed = true;
     return { ...n, granted: false, revokedAt: ra, updatedAt: ra, history: [...n.history, { action: 'expired', at: ra }] };
   });
-  if (changed) await writeConsents(next);
+  if (changed) await _writeConsents(next);
   return next;
 }
 
-async function touchConsentUsageByApp(appName, featureName) {
+async function _touchConsentUsageByApp(appName, featureName) {
   if (typeof appName !== 'string' || !appName.trim()) return false;
-  const consents = await readConsents();
+  const consents = await _readConsents();
   const index = consents.findIndex((c) => c.app === appName);
   if (index < 0) return false;
   const now = new Date().toISOString();
   consents[index] = { ...consents[index], lastUsedAt: now, lastUsedBy: typeof featureName === 'string' && featureName.trim() ? featureName : 'Unknown Feature', history: [...(Array.isArray(consents[index].history) ? consents[index].history : []), { action: 'used', at: now }] };
-  return writeConsents(consents);
+  return _writeConsents(consents);
 }
 
-async function writeConsents(data) {
+function touchConsentUsageByApp(appName, featureName) {
+  return withMutex(() => _touchConsentUsageByApp(appName, featureName));
+}
+
+async function _writeConsents(data) {
   try {
     const nd = Array.isArray(data) ? data.map((e, i) => normalizeConsent(e, i)) : [];
     await fs.mkdir(path.dirname(CONSENTS_FILE_PATH), { recursive: true });
     await fs.writeFile(CONSENTS_FILE_PATH, JSON.stringify(nd, null, 2), 'utf-8');
     return true;
   } catch { return false; }
+}
+
+function writeConsents(data) {
+  return withMutex(() => _writeConsents(data));
 }
 
 module.exports = { CONSENTS_FILE_PATH, inferRiskLevel, readConsents, touchConsentUsageByApp, writeConsents };

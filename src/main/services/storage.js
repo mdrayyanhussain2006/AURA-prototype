@@ -5,7 +5,6 @@ const { writeWithIntegrity, readWithIntegrity } = require('./integrityGuard');
 
 const USER_DATA_PATH = app.getPath('userData');
 const VAULT_FILE_PATH = path.join(USER_DATA_PATH, 'aura_vault.json');
-const CONSENTS_FILE_PATH = path.join(USER_DATA_PATH, 'aura_consents.json');
 
 // ── Generic async JSON helpers (non-HMAC, for consent/legacy files) ──
 
@@ -53,18 +52,6 @@ async function writeVaultItems(items) {
   return writeWithIntegrity(VAULT_FILE_PATH, Array.isArray(items) ? items : []);
 }
 
-// ── Consents (no HMAC — uses generic JSON) ──
-
-async function readConsentStore() {
-  return readJSON(CONSENTS_FILE_PATH, {
-    version: 1, consents: {}, hmacKey: null, integrity: null
-  });
-}
-
-async function writeConsentStore(store) {
-  return writeJSON(CONSENTS_FILE_PATH, store);
-}
-
 async function readData() {
   return { vault: await readVaultItems(), consent: [] };
 }
@@ -75,9 +62,8 @@ async function writeData(data) {
 }
 
 module.exports = {
-  VAULT_FILE_PATH, CONSENTS_FILE_PATH,
+  VAULT_FILE_PATH,
   readJSON, writeJSON,
   readVaultItems, writeVaultItems,
-  readConsentStore, writeConsentStore,
   readData, writeData
 };
