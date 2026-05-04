@@ -23,7 +23,7 @@
     "appId": "com.aura.desktopvault",
     "productName": "AURA Vault",
     "directories": {
-      "output": "release"
+      "output": "dist-final/"
     },
     "files": [
       "dist/**/*",
@@ -32,11 +32,13 @@
       "package.json"
     ],
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/screen.ico"
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
     }
   },
   "dependencies": {

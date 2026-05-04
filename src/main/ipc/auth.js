@@ -13,10 +13,10 @@ const SCRYPT_R = 8;
 const SCRYPT_P = 1;
 const KEY_LEN = 64;
 
-// Google OAuth config (loaded from .env)
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
+// Google OAuth config (fallback to known desktop app constants if .env is not packaged)
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '924019989743-gvdai74ltqmbal2hbchkno3bhbeb34lj.apps.googleusercontent.com';
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || '';
+const GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'https://aura-vault-49d27.firebaseapp.com/__/auth/handler';
 
 function getAuthStorePath() {
   return path.join(app.getPath('userData'), AUTH_STORE_FILENAME);
